@@ -5,24 +5,14 @@ import { useForm, Controller } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EventType, EventMode, CreateEventRequest } from '@/types';
+import { EventMode, CreateEventRequest } from '@/types';
 import 'react-day-picker/style.css';
-
-const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
-  { value: 'coffee',      label: 'Coffee Catchup',  emoji: '☕' },
-  { value: 'party',       label: 'Birthday Party',  emoji: '🎉' },
-  { value: 'meetup',      label: 'Weekly Meetup',   emoji: '🗓️' },
-  { value: 'happy_hour',  label: 'Happy Hour',      emoji: '🍻' },
-  { value: 'sports',      label: 'Soccer Practice', emoji: '⚽' },
-  { value: 'vacation',    label: 'Family Vacay',    emoji: '✈️' },
-  { value: 'dinner',      label: 'Dinner Plans',    emoji: '🍽️' },
-  { value: 'other',       label: 'Other',           emoji: '📅' },
-];
 
 const DURATION_STEPS = [15, 30, 45, 60, 90, 120, 180, 240];
 
@@ -32,37 +22,73 @@ function formatDuration(minutes: number): string {
   return hrs === Math.floor(hrs) ? `${hrs} hr${hrs > 1 ? 's' : ''}` : `${hrs} hrs`;
 }
 
+function nearestStepIndex(value: number): number {
+  let closest = 0;
+  let minDiff = Math.abs(DURATION_STEPS[0] - value);
+  for (let i = 1; i < DURATION_STEPS.length; i++) {
+    const diff = Math.abs(DURATION_STEPS[i] - value);
+    if (diff < minDiff) { minDiff = diff; closest = i; }
+  }
+  return closest;
+}
+
+// Common IANA timezones for the dropdown
+const COMMON_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Moscow',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Singapore',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Australia/Sydney',
+  'Pacific/Auckland',
+];
+
 interface FormValues {
   name: string;
   description: string;
-  type: EventType;
   creator_name: string;
   mode: EventMode;
   dates: Date[];
   time_start: string;
   time_end: string;
   slot_duration: number;
+  timezone: string;
+}
+
+function getBrowserTimezone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
 }
 
 export function CreateEventForm() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [durationInput, setDurationInput] = useState('30');
 
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, formState: {} } = useForm<FormValues>({
     defaultValues: {
-      type: 'coffee',
       mode: 'times',
       dates: [],
       time_start: '09:00',
       time_end: '17:00',
       slot_duration: 30,
+      timezone: getBrowserTimezone(),
     },
   });
 
   const watchName = watch('name');
   const watchCreatorName = watch('creator_name');
-  const watchType = watch('type');
   const watchMode = watch('mode');
   const watchDates = watch('dates');
 
@@ -79,7 +105,7 @@ export function CreateEventForm() {
       const body: CreateEventRequest = {
         name: values.name.trim(),
         description: values.description?.trim() || undefined,
-        type: values.type,
+        type: 'other',
         mode: values.mode,
         creator_name: values.creator_name.trim(),
         dates: values.dates.map(d => format(d, 'yyyy-MM-dd')).sort(),
@@ -87,6 +113,7 @@ export function CreateEventForm() {
           time_start: values.time_start,
           time_end: values.time_end,
           slot_duration: values.slot_duration,
+          timezone: values.timezone || undefined,
         }),
       };
       const res = await fetch('/api/events', {
@@ -111,57 +138,28 @@ export function CreateEventForm() {
     return { value: `${h}:00`, label: i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM` };
   });
 
+  const selectClass = 'w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400';
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Event name — always visible */}
+      {/* Event name */}
       <div className="space-y-2">
         <Input
           {...register('name', { required: true })}
           placeholder="Team lunch, birthday bash, weekend trip..."
           className="h-14 text-lg rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
           autoFocus
+          autoComplete="off"
         />
-        {/* Description — shown after name */}
         {showCreatorField && (
           <Textarea
             {...register('description')}
-            placeholder="Add a note (optional)"
-            className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400 text-sm"
+            placeholder="Where are you thinking? Any details your crew should know?"
+            className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
             rows={2}
           />
         )}
       </div>
-
-      {/* Event type chips */}
-      {showCreatorField && (
-        <div className="animate-[slideUp_0.3s_ease-out] space-y-2">
-          <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">What kind of event?</Label>
-          <Controller
-            control={control}
-            name="type"
-            render={({ field }) => (
-              <div className="flex flex-wrap gap-2">
-                {EVENT_TYPE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => field.onChange(opt.value)}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium border transition-all',
-                      field.value === opt.value
-                        ? 'bg-stone-900 text-white border-stone-900 dark:bg-stone-50 dark:text-stone-900 dark:border-stone-50'
-                        : 'bg-white border-stone-200 text-stone-600 hover:border-stone-400 dark:bg-stone-900 dark:border-stone-700 dark:text-stone-400 dark:hover:border-stone-500'
-                    )}
-                  >
-                    <span>{opt.emoji}</span>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          />
-        </div>
-      )}
 
       {/* Creator name */}
       {showCreatorField && (
@@ -174,6 +172,7 @@ export function CreateEventForm() {
             {...register('creator_name', { required: true })}
             placeholder="Your name"
             className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
+            autoComplete="name"
           />
         </div>
       )}
@@ -242,52 +241,59 @@ export function CreateEventForm() {
         </div>
       )}
 
-      {/* Time window — only for 'times' mode */}
+      {/* Time window */}
       {showTimeFields && (
-        <div className="animate-[slideUp_0.3s_ease-out] space-y-3">
-          <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">Time window</Label>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="time_start" className="text-xs text-stone-400">From</Label>
-              <select
-                id="time_start"
-                {...register('time_start')}
-                className="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              >
-                {timeOptions.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="time_end" className="text-xs text-stone-400">To</Label>
-              <select
-                id="time_end"
-                {...register('time_end')}
-                className="w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-sm text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              >
-                {timeOptions.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+        <div className="animate-[slideUp_0.3s_ease-out] space-y-4">
+          <div>
+            <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide mb-2 block">Time window</Label>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="time_start" className="text-xs text-stone-400">From</Label>
+                <select id="time_start" {...register('time_start')} className={selectClass}>
+                  {timeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="time_end" className="text-xs text-stone-400">To</Label>
+                <select id="time_end" {...register('time_end')} className={selectClass}>
+                  {timeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
             </div>
           </div>
+
+          {/* Duration — dial + free-text input */}
           <Controller
             control={control}
             name="slot_duration"
             render={({ field }) => {
-              const stepIndex = DURATION_STEPS.indexOf(field.value) === -1
-                ? 1
-                : DURATION_STEPS.indexOf(field.value);
+              const stepIndex = nearestStepIndex(field.value);
               return (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide shrink-0">
                       Slot size
                     </Label>
-                    <span className="text-sm font-semibold text-stone-900 dark:text-stone-50 tabular-nums">
-                      {formatDuration(field.value)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min={5}
+                        max={480}
+                        value={durationInput}
+                        onChange={e => {
+                          setDurationInput(e.target.value);
+                          const num = parseInt(e.target.value, 10);
+                          if (!isNaN(num) && num >= 5 && num <= 480) field.onChange(num);
+                        }}
+                        onBlur={() => {
+                          const num = parseInt(durationInput, 10);
+                          if (isNaN(num) || num < 5) { field.onChange(30); setDurationInput('30'); }
+                          else if (num > 480) { field.onChange(480); setDurationInput('480'); }
+                        }}
+                        className="w-16 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <span className="text-xs text-stone-400">min</span>
+                    </div>
                   </div>
                   <div className="relative pt-1">
                     <input
@@ -296,7 +302,11 @@ export function CreateEventForm() {
                       max={DURATION_STEPS.length - 1}
                       step={1}
                       value={stepIndex}
-                      onChange={e => field.onChange(DURATION_STEPS[Number(e.target.value)])}
+                      onChange={e => {
+                        const val = DURATION_STEPS[Number(e.target.value)];
+                        field.onChange(val);
+                        setDurationInput(String(val));
+                      }}
                       className="w-full h-2 rounded-full appearance-none cursor-pointer bg-stone-200 dark:bg-stone-700 accent-stone-900 dark:accent-stone-100"
                     />
                     <div className="flex justify-between mt-1.5">
@@ -319,6 +329,34 @@ export function CreateEventForm() {
               );
             }}
           />
+
+          {/* Advanced options */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(v => !v)}
+              className="flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+            >
+              {showAdvanced ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              Advanced options
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-3 animate-[slideUp_0.2s_ease-out] space-y-2">
+                <Label htmlFor="timezone" className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                  Timezone
+                </Label>
+                <select id="timezone" {...register('timezone')} className={selectClass}>
+                  {COMMON_TIMEZONES.map(tz => (
+                    <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-stone-400 dark:text-stone-500">
+                  Shown to participants so everyone knows what timezone the times refer to.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

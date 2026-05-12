@@ -12,6 +12,7 @@ export interface Event {
   time_start: string | null;
   time_end: string | null;
   slot_duration: number | null;
+  timezone: string | null;
   created_at: string;
 }
 
@@ -44,6 +45,7 @@ export interface CreateEventRequest {
   time_start?: string;
   time_end?: string;
   slot_duration?: number;
+  timezone?: string;
 }
 
 export interface CreateResponseRequest {

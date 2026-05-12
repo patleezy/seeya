@@ -2,32 +2,61 @@
 
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+function copyToClipboard(text: string): boolean {
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    return true;
+  }
+  return fallbackCopy(text);
+}
+
+function fallbackCopy(text: string): boolean {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export function ShareLinkBox({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
-  async function handleCopy() {
-    await navigator.clipboard.writeText(url);
+  function handleCopy() {
+    copyToClipboard(url);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 p-2 dark:border-stone-700 dark:bg-stone-900">
-      <input
-        readOnly
-        value={url}
-        className="flex-1 bg-transparent text-sm text-stone-600 dark:text-stone-400 outline-none truncate px-2"
-        onClick={e => (e.target as HTMLInputElement).select()}
-      />
-      <Button
-        size="sm"
-        onClick={handleCopy}
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={cn(
+        'w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all duration-200',
+        copied
+          ? 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/30 scale-[1.01]'
+          : 'border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:hover:border-stone-600'
+      )}
+    >
+      <span className="flex-1 text-sm text-stone-600 dark:text-stone-400 break-all font-mono leading-relaxed">
+        {url}
+      </span>
+      <span
         className={cn(
-          'shrink-0 gap-1.5',
-          copied && 'bg-emerald-600 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-600'
+          'shrink-0 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+          copied
+            ? 'bg-emerald-500 text-white'
+            : 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
         )}
       >
         {copied ? (
@@ -41,7 +70,7 @@ export function ShareLinkBox({ url }: { url: string }) {
             Copy
           </>
         )}
-      </Button>
-    </div>
+      </span>
+    </button>
   );
 }

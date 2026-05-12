@@ -11,6 +11,7 @@ create table events (
   time_start    text,
   time_end      text,
   slot_duration int,
+  timezone      text,
   created_at    timestamptz default now()
 );
 
