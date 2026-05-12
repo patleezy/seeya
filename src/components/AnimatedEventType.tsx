@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react';
 
 const EVENT_TYPES = [
-  'coffee chat',
+  'coffee catchup',
   'birthday party',
-  'weekly 1:1',
-  'team offsite',
-  'game night',
-  'first date',
+  'weekly meetup',
+  'happy hour',
+  'soccer practice',
+  'family vacay',
   'dinner plans',
   'book club',
+  'game night',
+  'team offsite',
 ];
 
 export function AnimatedEventType() {

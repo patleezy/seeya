@@ -9,10 +9,14 @@ import Link from 'next/link';
 import { Event } from '@/types';
 
 const TYPE_EMOJI: Record<string, string> = {
-  meeting: '💼',
-  party: '🎉',
-  trip: '✈️',
-  other: '📅',
+  coffee:     '☕',
+  party:      '🎉',
+  meetup:     '🗓️',
+  happy_hour: '🍻',
+  sports:     '⚽',
+  vacation:   '✈️',
+  dinner:     '🍽️',
+  other:      '📅',
 };
 
 interface Props {

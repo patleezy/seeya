@@ -1,4 +1,4 @@
-export type EventType = 'meeting' | 'party' | 'trip' | 'other';
+export type EventType = 'coffee' | 'party' | 'meetup' | 'happy_hour' | 'sports' | 'vacation' | 'dinner' | 'other';
 export type EventMode = 'times' | 'days';
 
 export interface Event {
@@ -43,7 +43,7 @@ export interface CreateEventRequest {
   dates: string[];
   time_start?: string;
   time_end?: string;
-  slot_duration?: 30 | 60;
+  slot_duration?: number;
 }
 
 export interface CreateResponseRequest {

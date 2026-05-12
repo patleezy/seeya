@@ -4,7 +4,7 @@ create table events (
   id            uuid primary key default gen_random_uuid(),
   name          text not null,
   description   text,
-  type          text not null check (type in ('meeting','party','trip','other')),
+  type          text not null check (type in ('coffee','party','meetup','happy_hour','sports','vacation','dinner','other')),
   creator_name  text not null,
   mode          text not null check (mode in ('times','days')),
   dates         text[] not null,

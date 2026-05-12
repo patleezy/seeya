@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     if (!body.name?.trim()) return NextResponse.json({ error: 'Event name is required' }, { status: 400 });
     if (!body.creator_name?.trim()) return NextResponse.json({ error: 'Creator name is required' }, { status: 400 });
     if (!body.dates?.length) return NextResponse.json({ error: 'At least one date is required' }, { status: 400 });
-    if (!['meeting', 'party', 'trip', 'other'].includes(body.type)) return NextResponse.json({ error: 'Invalid event type' }, { status: 400 });
+    if (!['coffee','party','meetup','happy_hour','sports','vacation','dinner','other'].includes(body.type)) return NextResponse.json({ error: 'Invalid event type' }, { status: 400 });
     if (!['times', 'days'].includes(body.mode)) return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
 
     const supabase = createSupabaseAdminClient();

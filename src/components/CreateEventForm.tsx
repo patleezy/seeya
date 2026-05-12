@@ -14,11 +14,23 @@ import { EventType, EventMode, CreateEventRequest } from '@/types';
 import 'react-day-picker/style.css';
 
 const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
-  { value: 'meeting', label: 'Meeting', emoji: '💼' },
-  { value: 'party', label: 'Party', emoji: '🎉' },
-  { value: 'trip', label: 'Trip', emoji: '✈️' },
-  { value: 'other', label: 'Other', emoji: '📅' },
+  { value: 'coffee',      label: 'Coffee Catchup',  emoji: '☕' },
+  { value: 'party',       label: 'Birthday Party',  emoji: '🎉' },
+  { value: 'meetup',      label: 'Weekly Meetup',   emoji: '🗓️' },
+  { value: 'happy_hour',  label: 'Happy Hour',      emoji: '🍻' },
+  { value: 'sports',      label: 'Soccer Practice', emoji: '⚽' },
+  { value: 'vacation',    label: 'Family Vacay',    emoji: '✈️' },
+  { value: 'dinner',      label: 'Dinner Plans',    emoji: '🍽️' },
+  { value: 'other',       label: 'Other',           emoji: '📅' },
 ];
+
+const DURATION_STEPS = [15, 30, 45, 60, 90, 120, 180, 240];
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hrs = minutes / 60;
+  return hrs === Math.floor(hrs) ? `${hrs} hr${hrs > 1 ? 's' : ''}` : `${hrs} hrs`;
+}
 
 interface FormValues {
   name: string;
@@ -29,7 +41,7 @@ interface FormValues {
   dates: Date[];
   time_start: string;
   time_end: string;
-  slot_duration: 30 | 60;
+  slot_duration: number;
 }
 
 export function CreateEventForm() {
@@ -39,7 +51,7 @@ export function CreateEventForm() {
 
   const { register, handleSubmit, control, watch, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
-      type: 'meeting',
+      type: 'coffee',
       mode: 'times',
       dates: [],
       time_start: '09:00',
@@ -260,32 +272,53 @@ export function CreateEventForm() {
               </select>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide shrink-0">Slot size</Label>
-            <Controller
-              control={control}
-              name="slot_duration"
-              render={({ field }) => (
-                <div className="flex gap-2">
-                  {([30, 60] as const).map(d => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => field.onChange(d)}
-                      className={cn(
-                        'rounded-full px-4 py-1.5 text-xs font-medium border transition-all',
-                        field.value === d
-                          ? 'bg-stone-900 text-white border-stone-900 dark:bg-stone-50 dark:text-stone-900'
-                          : 'border-stone-200 text-stone-500 hover:border-stone-400 dark:border-stone-700 dark:text-stone-400'
-                      )}
-                    >
-                      {d === 30 ? '30 min' : '1 hour'}
-                    </button>
-                  ))}
+          <Controller
+            control={control}
+            name="slot_duration"
+            render={({ field }) => {
+              const stepIndex = DURATION_STEPS.indexOf(field.value) === -1
+                ? 1
+                : DURATION_STEPS.indexOf(field.value);
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                      Slot size
+                    </Label>
+                    <span className="text-sm font-semibold text-stone-900 dark:text-stone-50 tabular-nums">
+                      {formatDuration(field.value)}
+                    </span>
+                  </div>
+                  <div className="relative pt-1">
+                    <input
+                      type="range"
+                      min={0}
+                      max={DURATION_STEPS.length - 1}
+                      step={1}
+                      value={stepIndex}
+                      onChange={e => field.onChange(DURATION_STEPS[Number(e.target.value)])}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer bg-stone-200 dark:bg-stone-700 accent-stone-900 dark:accent-stone-100"
+                    />
+                    <div className="flex justify-between mt-1.5">
+                      {DURATION_STEPS.map(d => (
+                        <span
+                          key={d}
+                          className={cn(
+                            'text-[10px] transition-colors',
+                            field.value === d
+                              ? 'text-stone-900 dark:text-stone-100 font-medium'
+                              : 'text-stone-300 dark:text-stone-600'
+                          )}
+                        >
+                          {formatDuration(d)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
-            />
-          </div>
+              );
+            }}
+          />
         </div>
       )}
 
