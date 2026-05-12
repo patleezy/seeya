@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { HeatmapGrid } from '@/components/HeatmapGrid';
 import { AiRecommendationCard } from '@/components/AiRecommendationCard';
+import { CalendarExport } from '@/components/CalendarExport';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,11 @@ export default async function ResultsPage({ params }: Props) {
           totalResponders={responses.length}
           initialRecommendation={recommendation}
         />
+
+        {/* Calendar export — only shown when best slots are known */}
+        {bestSlots.length > 0 && (
+          <CalendarExport event={event} bestSlots={bestSlots} />
+        )}
 
         {/* Heatmap */}
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-5 space-y-3">
