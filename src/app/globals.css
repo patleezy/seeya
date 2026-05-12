@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* Class-based dark mode for next-themes */
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Stone palette (warm neutrals) */
+  --color-stone-50: oklch(0.984 0.001 106.424);
+  --color-stone-100: oklch(0.961 0.003 264.542);
+  --color-stone-200: oklch(0.924 0.006 264.531);
+  --color-stone-300: oklch(0.869 0.013 264.436);
+  --color-stone-400: oklch(0.707 0.022 261.325);
+  --color-stone-500: oklch(0.554 0.022 264.364);
+  --color-stone-600: oklch(0.446 0.018 264.346);
+  --color-stone-700: oklch(0.373 0.015 264.364);
+  --color-stone-800: oklch(0.278 0.011 264.364);
+  --color-stone-900: oklch(0.21 0.006 264.364);
+  --color-stone-950: oklch(0.13 0.004 264.364);
+
+  /* Seeya brand warm green for selections */
+  --color-emerald-400: oklch(0.765 0.177 163.22);
+  --color-emerald-500: oklch(0.696 0.17 162.48);
+
+  /* Amber for heatmap and AI card */
+  --color-amber-50: oklch(0.987 0.022 95.277);
+  --color-amber-100: oklch(0.962 0.059 95.617);
+  --color-amber-200: oklch(0.924 0.12 95.746);
+  --color-amber-300: oklch(0.879 0.169 91.605);
+  --color-amber-400: oklch(0.828 0.189 84.429);
+  --color-amber-500: oklch(0.769 0.188 70.08);
+
+  /* Animation keyframes */
+  --animate-blob: blob 20s ease-in-out infinite alternate;
+  --animate-blob-2: blob 25s ease-in-out infinite alternate-reverse;
+  --animate-blob-3: blob 28s ease-in-out infinite alternate;
+  --animate-fade-in: fadeIn 0.4s ease-in-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+}
+
+@keyframes blob {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.08); }
+  66% { transform: translate(-20px, 20px) scale(0.94); }
+  100% { transform: translate(10px, -10px) scale(1.04); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+:root {
+  --background: #fafaf9;
+  --foreground: #1c1917;
+}
+
+.dark {
+  --background: #0c0a09;
+  --foreground: #fafaf9;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
