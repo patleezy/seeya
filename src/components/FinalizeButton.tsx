@@ -30,7 +30,7 @@ export function FinalizeButton({ event, bestSlot, allSlotKeys, densityMap, total
   const [hostToken, setHostToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPicker, setShowPicker] = useState(false);
+  const [showPicker, setShowPicker] = useState(!bestSlot);
 
   useEffect(() => {
     const token = sessionStorage.getItem(`host_token_${event.id}`);
@@ -78,21 +78,23 @@ export function FinalizeButton({ event, bestSlot, allSlotKeys, densityMap, total
           {loading ? 'Finalizing...' : 'Finalize this time →'}
         </Button>
       ) : (
-        <p className="text-sm text-stone-400 dark:text-stone-500 text-center">
-          Get the AI recommendation above to see the best time, or pick one below.
+        <p className="text-sm font-medium text-stone-600 dark:text-stone-400">
+          Pick a time to finalize:
         </p>
       )}
 
-      <div className="flex items-center justify-center">
-        <button
-          type="button"
-          className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 flex items-center gap-1 transition-colors"
-          onClick={() => setShowPicker(v => !v)}
-        >
-          {showPicker ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          {showPicker ? 'Hide options' : 'Choose a different time'}
-        </button>
-      </div>
+      {bestSlot && (
+        <div className="flex items-center justify-center">
+          <button
+            type="button"
+            className="text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 flex items-center gap-1 transition-colors"
+            onClick={() => setShowPicker(v => !v)}
+          >
+            {showPicker ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {showPicker ? 'Hide options' : 'Choose a different time'}
+          </button>
+        </div>
+      )}
 
       {showPicker && (
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">

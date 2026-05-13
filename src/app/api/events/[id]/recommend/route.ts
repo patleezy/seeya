@@ -92,12 +92,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         source = 'ai';
       } catch (geminiErr) {
         console.error('Gemini error:', geminiErr);
-        // Fall back to algorithm result
+        const errMsg = geminiErr instanceof Error ? geminiErr.message : String(geminiErr);
+        const gemini_error = errMsg.includes('429') || errMsg.toLowerCase().includes('quota') ? 'rate_limit' : 'unavailable';
         recommendation = bestSlots.length > 0
           ? `Based on the responses, ${bestSlots[0]} seems to work best for most people.`
           : "Tough one — there's no time that works for everyone. Consider following up directly!";
         best_slots = bestSlots;
-        source = 'algorithm';
+        // Return without caching so the creator can retry when Gemini recovers
+        return NextResponse.json({ recommendation, best_slots, source: 'algorithm', gemini_failed: true, gemini_error });
       }
     }
 
