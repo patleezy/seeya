@@ -15,37 +15,23 @@ interface Props {
 export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled }: Props) {
   const allSlots = buildSlotKeys(event);
   const dates = [...event.dates].sort();
-
-  // For 'times' mode: rows=timeSlots per day, cols=dates
-  // For 'days' mode: single row, cols=dates
   const isDayMode = event.mode === 'days';
+  const tripDuration = event.trip_duration ?? null;
 
-  // Build a 2D structure: timeRows x dateCols
-  // Each cell is a slot key
   let timeLabels: string[] = [];
-  let grid: string[][] = []; // grid[rowIndex][colIndex] = slotKey
+  let grid: string[][] = [];
 
   if (isDayMode) {
     timeLabels = ['Available'];
     grid = [dates];
   } else {
-    // Extract unique time labels from slot keys (format: YYYY-MM-DDTHH:MM)
     const slotsForFirstDate = allSlots.filter(s => s.startsWith(dates[0]));
     timeLabels = slotsForFirstDate.map(s => formatSlotLabel(s, 'times'));
-    grid = slotsForFirstDate.map((_, rowIdx) =>
-      dates.map(date => {
-        const slot = allSlots.find(s => s.startsWith(date) && s === `${date}T${slotsForFirstDate[rowIdx].split('T')[1] ?? ''}`)
-          || allSlots[dates.indexOf(date) * slotsForFirstDate.length + rowIdx];
-        return slot ?? '';
-      })
-    );
-    // Rebuild properly
     grid = [];
     for (let row = 0; row < slotsForFirstDate.length; row++) {
       const gridRow: string[] = [];
       for (const date of dates) {
-        // Find the matching slot for this date and time
-        const timepart = slotsForFirstDate[row].slice(10); // "THH:MM"
+        const timepart = slotsForFirstDate[row].slice(10);
         gridRow.push(date + timepart);
       }
       grid.push(gridRow);
@@ -62,8 +48,11 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
     return cell?.getAttribute('data-slot') ?? null;
   };
 
+  // Keep latest values in refs for use inside stable native event handlers
   const selectedSlotsRef = useRef(selectedSlots);
   selectedSlotsRef.current = selectedSlots;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
 
   const applySlot = useCallback(
     (slot: string) => {
@@ -75,6 +64,8 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
     },
     [disabled, onSlotsChange]
   );
+  const applySlotRef = useRef(applySlot);
+  applySlotRef.current = applySlot;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -104,101 +95,79 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
     return () => window.removeEventListener('mouseup', onMouseUp);
   }, []);
 
-  // Touch support
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (disabled) return;
-      // Prevent browser from firing synthetic mousedown/click after touch,
-      // which would toggle the cell a second time
+  // Native (non-passive) touch listeners so e.preventDefault() stops synthetic mouse events
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (disabledRef.current) return;
       e.preventDefault();
       const touch = e.touches[0];
-      const el = document.elementFromPoint(touch.clientX, touch.clientY);
-      const slot = getSlotFromElement(el);
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const slot = getSlotFromElement(target);
       if (!slot) return;
       isDragging.current = true;
-      dragAction.current = selectedSlots.has(slot) ? 'remove' : 'add';
-      applySlot(slot);
-    },
-    [applySlot, disabled, selectedSlots]
-  );
+      dragAction.current = selectedSlotsRef.current.has(slot) ? 'remove' : 'add';
+      applySlotRef.current(slot);
+    };
 
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (!isDragging.current || disabled) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current || disabledRef.current) return;
       e.preventDefault();
       const touch = e.touches[0];
-      const el = document.elementFromPoint(touch.clientX, touch.clientY);
-      const slot = getSlotFromElement(el);
-      if (slot) applySlot(slot);
-    },
-    [applySlot, disabled]
-  );
+      const target = document.elementFromPoint(touch.clientX, touch.clientY);
+      const slot = getSlotFromElement(target);
+      if (slot) applySlotRef.current(slot);
+    };
 
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-  }, []);
+    const onTouchEnd = () => { isDragging.current = false; };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []); // stable — all mutable state accessed via refs
 
   const colCount = dates.length;
-  const colMinWidth = isDayMode && event.trip_duration && event.trip_duration > 1 ? 80 : 56;
+  const colMinWidth = tripDuration && tripDuration > 1 ? 80 : 56;
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full">
       {!disabled && (
         <p className="text-xs text-stone-400 dark:text-stone-500 mb-3">
           Click or drag to mark when you&apos;re free
         </p>
       )}
-      <div
-        ref={containerRef}
-        className="select-none"
-        style={{ touchAction: 'none' }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseEnter}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Header row: date labels */}
+
+      {/* Days mode: responsive wrap — no horizontal scroll */}
+      {isDayMode ? (
         <div
-          className="grid gap-0.5 mb-0.5"
-          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
+          ref={containerRef}
+          className="select-none flex flex-wrap gap-2"
         >
-          <div /> {/* time label spacer */}
           {dates.map(date => {
-            const [line1, line2] = formatDateHeaderLines(date, isDayMode ? event.trip_duration : null);
+            const [line1, line2] = formatDateHeaderLines(date, tripDuration);
+            const isSelected = selectedSlots.has(date);
+            const cellMinWidth = tripDuration && tripDuration > 1 ? 88 : 64;
             return (
               <div
                 key={date}
-                className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight"
+                className="flex flex-col gap-1"
+                style={{ flex: `1 1 ${cellMinWidth}px`, maxWidth: tripDuration && tripDuration > 1 ? 140 : 100 }}
               >
-                <div>{line1}</div>
-                <div>{line2}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Grid rows */}
-        {grid.map((row, rowIdx) => (
-          <div
-            key={rowIdx}
-            className="grid gap-0.5 mb-0.5"
-            style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
-          >
-            {/* Time label */}
-            <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
-              {isDayMode ? null : timeLabels[rowIdx]}
-            </div>
-            {/* Cells */}
-            {row.map((slot, colIdx) => {
-              const isSelected = selectedSlots.has(slot);
-              return (
+                <div className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 leading-tight">
+                  <div>{line1}</div>
+                  <div>{line2}</div>
+                </div>
                 <div
-                  key={colIdx}
-                  data-slot={slot}
+                  data-slot={date}
                   className={cn(
-                    'rounded-sm transition-colors duration-75 cursor-pointer',
-                    isDayMode ? 'h-12' : 'h-7',
+                    'h-12 rounded-sm transition-colors duration-75',
                     isSelected
                       ? 'bg-emerald-400 dark:bg-emerald-500'
                       : disabled
@@ -206,11 +175,71 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
                       : 'bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700'
                   )}
                 />
-              );
-            })}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Times mode: scrollable grid */
+        <div className="overflow-x-auto">
+          <div
+            ref={containerRef}
+            className="select-none"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseEnter}
+          >
+            {/* Header row */}
+            <div
+              className="grid gap-0.5 mb-0.5"
+              style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
+            >
+              <div />
+              {dates.map(date => {
+                const [line1, line2] = formatDateHeaderLines(date, null);
+                return (
+                  <div
+                    key={date}
+                    className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight"
+                  >
+                    <div>{line1}</div>
+                    <div>{line2}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Grid rows */}
+            {grid.map((row, rowIdx) => (
+              <div
+                key={rowIdx}
+                className="grid gap-0.5 mb-0.5"
+                style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
+              >
+                <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
+                  {timeLabels[rowIdx]}
+                </div>
+                {row.map((slot, colIdx) => {
+                  const isSelected = selectedSlots.has(slot);
+                  return (
+                    <div
+                      key={colIdx}
+                      data-slot={slot}
+                      className={cn(
+                        'rounded-sm transition-colors duration-75 cursor-pointer h-7',
+                        isSelected
+                          ? 'bg-emerald-400 dark:bg-emerald-500'
+                          : disabled
+                          ? 'bg-stone-100 dark:bg-stone-800'
+                          : 'bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700'
+                      )}
+                    />
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {!isDayMode && (
         <div className="mt-3 flex items-center gap-3 text-xs text-stone-400 dark:text-stone-500">

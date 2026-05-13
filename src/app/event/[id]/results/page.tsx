@@ -95,8 +95,20 @@ export default async function ResultsPage({ params, searchParams }: Props) {
           )}
         </div>
 
+        {/* Comments from respondents */}
+        {responses.some(r => r.comment) && (
+          <div className="space-y-2">
+            {responses.filter(r => r.comment).map(r => (
+              <div key={r.id} className="text-sm text-stone-500 dark:text-stone-400">
+                <span className="font-medium text-stone-700 dark:text-stone-300">{r.respondent_name}:</span>{' '}
+                {r.comment}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Finalized banner OR finalize button (client component handles both) */}
-        <FinalizedBanner event={event} bestSlots={bestSlots} responses={responses} />
+        <FinalizedBanner event={event} bestSlots={bestSlots} allSlotKeys={allSlotKeys} densityMap={densityMap} totalResponders={responses.length} responses={responses} />
 
         {/* AI Recommendation — host only (component handles the check internally) */}
         <AiRecommendationCard

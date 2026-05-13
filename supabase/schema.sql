@@ -29,6 +29,7 @@ create table responses (
   respondent_name  text not null,
   email            text,
   availability     text[] not null,
+  comment          text,
   created_at       timestamptz default now()
 );
 
@@ -58,4 +59,5 @@ create policy "public read recommendations" on ai_recommendations for select usi
 -- alter table events add column if not exists anonymous boolean not null default false;
 -- alter table events add column if not exists max_responses int;
 -- alter table responses add column if not exists email text;
+-- alter table responses add column if not exists comment text;
 -- alter table events add column if not exists trip_duration int;

@@ -86,99 +86,143 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
         </div>
       )}
 
-      {/* Header */}
-      <div
-        className="grid gap-0.5 mb-0.5"
-        style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
-      >
-        <div />
-        {dates.map(date => {
-          const [line1, line2] = formatDateHeaderLines(date, isDayMode ? event.trip_duration : null);
-          return (
-            <div
-              key={date}
-              className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight"
-            >
-              <div>{line1}</div>
-              <div>{line2}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Rows */}
-      {grid.map((row, rowIdx) => (
-        <div
-          key={rowIdx}
-          className="grid gap-0.5 mb-0.5"
-          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
-        >
-          <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
-            {isDayMode ? null : timeLabels[rowIdx]}
-          </div>
-          {row.map((slot, colIdx) => {
-            const density = densityMap[slot] ?? 0;
-            const isBest = bestSet.has(slot);
-            const slotResponders = slotToResponders.get(slot) ?? [];
-            const isHovered = hoveredSlot === slot;
-
+      {/* Days mode: responsive wrap */}
+      {isDayMode ? (
+        <div className="flex flex-wrap gap-2">
+          {dates.map(date => {
+            const [line1, line2] = formatDateHeaderLines(date, event.trip_duration);
+            const density = densityMap[date] ?? 0;
+            const isBest = bestSet.has(date);
+            const slotResponders = slotToResponders.get(date) ?? [];
+            const isHovered = hoveredSlot === date;
+            const cellMinWidth = event.trip_duration && event.trip_duration > 1 ? 88 : 64;
             return (
               <div
-                key={colIdx}
-                className={cn(
-                  'relative rounded-sm transition-colors',
-                  isDayMode ? 'h-12' : 'h-7',
-                  density > 0 ? 'bg-stone-50 dark:bg-stone-800' : 'bg-stone-100 dark:bg-stone-800/50',
-                  isBest && 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-emerald-400'
-                )}
-                onMouseEnter={() => setHoveredSlot(slot)}
-                onMouseLeave={() => setHoveredSlot(null)}
+                key={date}
+                className="flex flex-col gap-1"
+                style={{ flex: `1 1 ${cellMinWidth}px`, maxWidth: event.trip_duration && event.trip_duration > 1 ? 140 : 100 }}
               >
-                {/* Color dots */}
-                {slotResponders.length > 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center flex-wrap gap-0.5 p-0.5">
-                    {slotResponders.map((name, di) => (
-                      <span
-                        key={di}
-                        className="rounded-full flex-shrink-0"
-                        style={{
-                          width: isDayMode ? 10 : 7,
-                          height: isDayMode ? 10 : 7,
-                          backgroundColor: respondentColorMap.get(name) ?? '#888',
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Hover tooltip */}
-                {isHovered && slotResponders.length > 0 && (
-                  <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
-                    <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-                      {slotResponders.map((name, ni) => (
-                        <div key={ni} className="flex items-center gap-1.5">
-                          <span
-                            className="rounded-full inline-block w-2 h-2 flex-shrink-0"
-                            style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }}
-                          />
-                          {isAnonymous
-                            ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}`
-                            : name}
-                        </div>
+                <div className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 leading-tight">
+                  <div>{line1}</div>
+                  <div>{line2}</div>
+                </div>
+                <div
+                  className={cn(
+                    'relative h-12 rounded-sm transition-colors',
+                    density > 0 ? 'bg-stone-50 dark:bg-stone-800' : 'bg-stone-100 dark:bg-stone-800/50',
+                    isBest && 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-emerald-400'
+                  )}
+                  onMouseEnter={() => setHoveredSlot(date)}
+                  onMouseLeave={() => setHoveredSlot(null)}
+                >
+                  {slotResponders.length > 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center flex-wrap gap-0.5 p-0.5">
+                      {slotResponders.map((name, di) => (
+                        <span
+                          key={di}
+                          className="rounded-full flex-shrink-0"
+                          style={{ width: 10, height: 10, backgroundColor: respondentColorMap.get(name) ?? '#888' }}
+                        />
                       ))}
-                      <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
-                        {density}/{totalResponders} free
-                      </div>
                     </div>
-                    {/* Arrow */}
-                    <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
-                  </div>
-                )}
+                  )}
+                  {isHovered && slotResponders.length > 0 && (
+                    <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
+                      <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                        {slotResponders.map((name, ni) => (
+                          <div key={ni} className="flex items-center gap-1.5">
+                            <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
+                            {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
+                          </div>
+                        ))}
+                        <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
+                          {density}/{totalResponders} free
+                        </div>
+                      </div>
+                      <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
-      ))}
+      ) : (
+        /* Times mode: scrollable grid */
+        <>
+          {/* Header */}
+          <div
+            className="grid gap-0.5 mb-0.5"
+            style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
+          >
+            <div />
+            {dates.map(date => {
+              const [line1, line2] = formatDateHeaderLines(date, null);
+              return (
+                <div key={date} className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight">
+                  <div>{line1}</div>
+                  <div>{line2}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Rows */}
+          {grid.map((row, rowIdx) => (
+            <div
+              key={rowIdx}
+              className="grid gap-0.5 mb-0.5"
+              style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
+            >
+              <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
+                {timeLabels[rowIdx]}
+              </div>
+              {row.map((slot, colIdx) => {
+                const density = densityMap[slot] ?? 0;
+                const isBest = bestSet.has(slot);
+                const slotResponders = slotToResponders.get(slot) ?? [];
+                const isHovered = hoveredSlot === slot;
+                return (
+                  <div
+                    key={colIdx}
+                    className={cn(
+                      'relative rounded-sm transition-colors h-7',
+                      density > 0 ? 'bg-stone-50 dark:bg-stone-800' : 'bg-stone-100 dark:bg-stone-800/50',
+                      isBest && 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-emerald-400'
+                    )}
+                    onMouseEnter={() => setHoveredSlot(slot)}
+                    onMouseLeave={() => setHoveredSlot(null)}
+                  >
+                    {slotResponders.length > 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center flex-wrap gap-0.5 p-0.5">
+                        {slotResponders.map((name, di) => (
+                          <span key={di} className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
+                        ))}
+                      </div>
+                    )}
+                    {isHovered && slotResponders.length > 0 && (
+                      <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
+                        <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                          {slotResponders.map((name, ni) => (
+                            <div key={ni} className="flex items-center gap-1.5">
+                              <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
+                              {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
+                            </div>
+                          ))}
+                          <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
+                            {density}/{totalResponders} free
+                          </div>
+                        </div>
+                        <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }

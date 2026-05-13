@@ -22,6 +22,14 @@ function fmt12h(t: string): string {
   return m > 0 ? `${displayH}:${m.toString().padStart(2, '0')} ${period}` : `${displayH} ${period}`;
 }
 
+function fmtTz(tz: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZoneName: 'short', timeZone: tz })
+      .formatToParts(new Date())
+      .find(p => p.type === 'timeZoneName')?.value ?? tz;
+  } catch { return tz; }
+}
+
 export default async function EventPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { created } = await searchParams;
@@ -86,7 +94,7 @@ export default async function EventPage({ params, searchParams }: Props) {
           {e.mode === 'times' && e.time_start && e.time_end && (
             <p className="text-sm text-stone-500 dark:text-stone-400">
               {fmt12h(e.time_start)} – {fmt12h(e.time_end)} · {e.slot_duration ?? 30}-min slots
-              {e.timezone ? ` · ${e.timezone}` : ''}
+              {e.timezone ? ` · ${fmtTz(e.timezone)}` : ''}
             </p>
           )}
           {e.mode === 'days' && e.trip_duration && e.trip_duration > 1 && (

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Event } from '@/types';
@@ -16,6 +17,7 @@ export function ResponseForm({ event }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [comment, setComment] = useState('');
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function ResponseForm({ event }: Props) {
           respondent_name: name.trim(),
           email: email.trim() || undefined,
           availability: Array.from(selectedSlots),
+          comment: comment.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -67,6 +70,17 @@ export function ResponseForm({ event }: Props) {
           placeholder="Email (optional — for calendar invites)"
           autoComplete="email"
           className="rounded-2xl"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Textarea
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+          placeholder="Anything to add? (optional)"
+          rows={2}
+          className="rounded-2xl resize-none"
+          maxLength={500}
         />
       </div>
 

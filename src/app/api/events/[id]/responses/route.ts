@@ -37,6 +37,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (body.email && body.email.length > 200) {
       return NextResponse.json({ error: 'Email too long' }, { status: 400 });
     }
+    if (body.comment && body.comment.length > 500) {
+      return NextResponse.json({ error: 'Comment too long' }, { status: 400 });
+    }
 
     const supabase = createSupabaseAdminClient();
 
@@ -69,6 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         respondent_name: body.respondent_name.trim(),
         email: body.email?.trim() || null,
         availability: body.availability,
+        comment: body.comment?.trim() || null,
       })
       .select('id')
       .single();

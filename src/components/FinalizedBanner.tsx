@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Event, Response } from '@/types';
+import { Event, Response, SlotDensityMap } from '@/types';
 import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
 import { CheckCircle } from 'lucide-react';
@@ -12,9 +12,8 @@ function formatFinalizedSlot(slot: string, event: Event): string {
   if (event.mode === 'days') {
     return format(parseISO(slot), 'EEEE, MMMM d, yyyy');
   }
-  // times mode: slot is "YYYY-MM-DDTHH:MM"
   const date = format(parseISO(slot.replace('T', ' ')), 'EEEE, MMMM d');
-  const time = slot.slice(11); // "HH:MM"
+  const time = slot.slice(11);
   const [h, m] = time.split(':').map(Number);
   const period = h >= 12 ? 'PM' : 'AM';
   const displayH = h % 12 || 12;
@@ -24,10 +23,13 @@ function formatFinalizedSlot(slot: string, event: Event): string {
 interface Props {
   event: Event;
   bestSlots: string[];
+  allSlotKeys: string[];
+  densityMap: SlotDensityMap;
+  totalResponders: number;
   responses?: Response[];
 }
 
-export function FinalizedBanner({ event, bestSlots, responses = [] }: Props) {
+export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, totalResponders, responses = [] }: Props) {
   const [finalizedSlot, setFinalizedSlot] = useState<string | null>(event.finalized_slot);
   const [isHost, setIsHost] = useState(false);
   const [unfinalizingPending, setUnfinalizingPending] = useState(false);
@@ -86,12 +88,15 @@ export function FinalizedBanner({ event, bestSlots, responses = [] }: Props) {
     );
   }
 
-  if (bestSlots.length === 0) return null;
+  if (!isHost) return null;
 
   return (
     <FinalizeButton
-      eventId={event.id}
-      bestSlot={bestSlots[0]}
+      event={event}
+      bestSlot={bestSlots[0] ?? null}
+      allSlotKeys={allSlotKeys}
+      densityMap={densityMap}
+      totalResponders={totalResponders}
       onFinalized={setFinalizedSlot}
     />
   );

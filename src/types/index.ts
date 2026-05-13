@@ -30,6 +30,7 @@ export interface Response {
   respondent_name: string;
   email: string | null;
   availability: string[];
+  comment: string | null;
   created_at: string;
 }
 
@@ -66,4 +67,5 @@ export interface CreateResponseRequest {
   respondent_name: string;
   email?: string;
   availability: string[];
+  comment?: string;
 }
