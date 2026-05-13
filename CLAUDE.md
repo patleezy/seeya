@@ -46,6 +46,8 @@ Schema is at `supabase/schema.sql`. Run it once in the Supabase SQL editor. Thre
 
 Key `events` columns beyond the basics: `host_token uuid`, `finalized_slot text`, `finalized_at timestamptz`, `location text`, `timezone text`, `anonymous boolean`, `max_responses int`, `response_deadline timestamptz`, `trip_duration int`.
 
+Key `responses` columns beyond the basics: `email text` (optional, used for email invites), `comment text` (optional, shown on results page), `declined boolean` (true when respondent submitted "none of these work for me").
+
 ## Common tasks
 
 **Add a new event type** — update the `check` constraint in `supabase/schema.sql`, the `EventType` union in `src/types/index.ts`, and the `EVENT_TYPE_OPTIONS` array in `src/components/CreateEventForm.tsx`.
@@ -91,3 +93,23 @@ Use `repeat(auto-fill, minmax(68px, 1fr))` for both `AvailabilityGrid` and `Heat
 ### Respondent color coding
 
 `HeatmapGrid` accepts a `responses: Response[]` prop and builds a `slotToResponders` map internally. Colors are generated as `hsl((i * 360 / n) % 360, 65%, 55%)` for N respondents — evenly spaced hues. Anonymous mode replaces names with "Guest 1", "Guest 2", etc. in tooltips and the legend.
+
+### Decline flow
+
+Respondents can submit with `declined: true` and an empty `availability: []` ("None of these work for me"). The results page counts these separately: `declinedCount = responses.filter(r => r.declined).length`. Declined respondents still count toward `totalResponders` in the heatmap denominator (they're real respondents with zero availability — slots should show `X/5` not `X/3`).
+
+### Email invites (mailto: pattern)
+
+`FinalizedBanner.tsx` builds a `mailto:?bcc=...` URL client-side using `useMemo`. Uses `bcc=` so invitees don't see each other's addresses. The body includes Google Calendar URL (built inline) and a direct `.ics` link at `/api/events/[id]/ics`. No email infrastructure or API keys required — opens the host's default mail client. Button is only shown to the host (`isHost`) when at least one non-declined response has an email.
+
+### Direct ICS endpoint
+
+`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invite bodies as the Apple Calendar link.
+
+### Duration preset chips
+
+The slot duration UI in `CreateEventForm.tsx` uses pill chips (`DURATION_PRESETS` array) instead of a slider. A "Custom" chip reveals a number input + `min`/`hr` unit select. When switching units, the displayed value converts automatically (`field.value` always stores minutes). Reset `customUnit` to `'min'` when a preset chip is selected.
+
+### DayPicker dropdown navigation
+
+`react-day-picker` v9 with `captionLayout="dropdown"` renders both a static `caption_label` span and interactive month/year selects. Hide the static label with `caption_label: 'hidden'` in the `classNames` prop. The chevron arrows use a CSS variable that overrides Tailwind fill classes — use `!fill-stone-500 dark:!fill-stone-300` (Tailwind `!important`) on the `chevron` classname to ensure correct colors in both modes.

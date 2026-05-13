@@ -12,7 +12,9 @@ Built with Next.js, Supabase, and Gemini 2.5 Flash.
 - **Color-coded heatmap** — each respondent gets a distinct color; hover any cell to see exactly who's free
 - **Smart AI recommendation** — algorithm handles clear-cut cases instantly; Gemini 2.5 Flash writes nuanced prose for ambiguous overlaps
 - **Finalization flow** — event creator can lock in a time; a confirmation banner appears for all viewers with calendar export
-- **Calendar export** — download `.ics` or add to Google Calendar; includes attendee list, location, and description
+- **Calendar export** — download `.ics` or add to Google Calendar; includes location and description; direct `.ics` endpoint at `/api/events/[id]/ics`
+- **Email invites** — after finalization, the host can open a pre-filled email (via `mailto:`) with BCC list, subject, and body containing Google Calendar and `.ics` links
+- **Decline option** — participants can mark "none of these work for me" without selecting slots
 - **Comment field** — respondents can add a note; comments are visible to everyone on the results page
 - **Anonymous mode** — hide participant names from each other (organizer still sees all)
 - **Response deadline** — automatically close responses at a set date
@@ -91,7 +93,8 @@ src/
 │           ├── route.ts                # GET /api/events/[id]
 │           ├── responses/route.ts      # POST responses
 │           ├── recommend/route.ts      # POST AI recommendation
-│           └── finalize/route.ts       # POST/DELETE finalization
+│           ├── finalize/route.ts       # POST/DELETE finalization
+│           └── ics/route.ts            # GET .ics calendar file
 ├── components/
 │   ├── AvailabilityGrid.tsx            # Drag-to-paint grid (client)
 │   ├── HeatmapGrid.tsx                 # Color-coded density grid
@@ -131,7 +134,7 @@ The event creator gets a `host_token` when they create an event (returned in the
 1. The AI recommendation card (with "Get recommendation" button)
 2. A **Finalize** button to lock in the best time (or choose any other slot)
 
-Once finalized, a green confirmation banner appears for all viewers with calendar export options.
+Once finalized, a green confirmation banner appears for all viewers with calendar export options. The host also sees an "Email invites" button that opens a pre-filled `mailto:` draft with all respondents BCC'd — no email infrastructure required.
 
 ## Deployment
 
@@ -148,7 +151,7 @@ The easiest path is Vercel:
 See `supabase/schema.sql` for the full DDL. Three tables:
 
 - **`events`** — event config including dates, time window, mode, creator info, and advanced settings (`host_token`, `finalized_slot`, `location`, `timezone`, `anonymous`, `max_responses`, `response_deadline`, `trip_duration`)
-- **`responses`** — per-respondent availability as an array of slot key strings, plus optional `email` and `comment`
+- **`responses`** — per-respondent availability as an array of slot key strings, plus optional `email`, `comment`, and a `declined` boolean for "can't make it" RSVPs
 - **`ai_recommendations`** — cached AI output per event (invalidated on new responses)
 
 Row-level security is enabled with public read policies. All writes go through the service role key in API routes.
