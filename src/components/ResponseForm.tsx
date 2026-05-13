@@ -15,6 +15,7 @@ interface Props {
 export function ResponseForm({ event }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export function ResponseForm({ event }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           respondent_name: name.trim(),
+          email: email.trim() || undefined,
           availability: Array.from(selectedSlots),
         }),
       });
@@ -54,6 +56,16 @@ export function ResponseForm({ event }: Props) {
           onChange={e => setName(e.target.value)}
           placeholder="Add your name"
           required
+          autoComplete="name"
+          className="rounded-2xl"
+        />
+        <Input
+          id="respondent_email"
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email (optional — for calendar invites)"
+          autoComplete="email"
           className="rounded-2xl"
         />
       </div>

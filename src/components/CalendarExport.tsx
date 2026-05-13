@@ -2,12 +2,13 @@
 
 import { Calendar, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Event } from '@/types';
+import { Event, Response } from '@/types';
 import { parseISO, addMinutes, addDays, format } from 'date-fns';
 
 interface Props {
   event: Event;
   bestSlots: string[];
+  responses?: Response[];
 }
 
 function getStartEnd(event: Event, bestSlots: string[]): { start: Date; end: Date; allDay: boolean } | null {
@@ -42,7 +43,19 @@ function escapeIcs(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 }
 
-function downloadIcs(event: Event, bestSlots: string[]) {
+// RFC 5545 §3.1 — fold lines exceeding 75 octets
+function foldLine(line: string): string {
+  if (line.length <= 75) return line;
+  const chunks: string[] = [line.slice(0, 75)];
+  let i = 75;
+  while (i < line.length) {
+    chunks.push(' ' + line.slice(i, i + 74));
+    i += 74;
+  }
+  return chunks.join('\r\n');
+}
+
+function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
   const range = getStartEnd(event, bestSlots);
   if (!range) return;
 
@@ -57,11 +70,21 @@ function downloadIcs(event: Event, bestSlots: string[]) {
     ? `DTEND;VALUE=DATE:${toIcsDate(end, true)}`
     : `DTEND:${toIcsDate(end, false)}`;
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+  const eventUrl = `${appUrl}/event/${event.id}`;
+
   const descriptionParts = [
     event.description,
+    event.location ? `📍 ${event.location}` : null,
     `Organized by ${event.creator_name}`,
-    'Coordinated with seeya',
-  ].filter(Boolean);
+    `Coordinated with Seeya: ${eventUrl}`,
+  ].filter(Boolean) as string[];
+
+  const attendeeLines = responses
+    .filter(r => r.email)
+    .map(r =>
+      foldLine(`ATTENDEE;CN=${escapeIcs(r.respondent_name)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${r.email}`)
+    );
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -74,9 +97,11 @@ function downloadIcs(event: Event, bestSlots: string[]) {
     `DTSTAMP:${now}`,
     dtStart,
     dtEnd,
-    `SUMMARY:${escapeIcs(event.name)}`,
-    descriptionParts.length ? `DESCRIPTION:${escapeIcs(descriptionParts.join('\\n'))}` : '',
-    event.location ? `LOCATION:${escapeIcs(event.location)}` : '',
+    foldLine(`SUMMARY:${escapeIcs(event.name)}`),
+    descriptionParts.length ? foldLine(`DESCRIPTION:${escapeIcs(descriptionParts.join('\\n'))}`) : '',
+    event.location ? foldLine(`LOCATION:${escapeIcs(event.location)}`) : '',
+    foldLine(`URL:${eventUrl}`),
+    ...attendeeLines,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean).join('\r\n');
@@ -90,17 +115,22 @@ function downloadIcs(event: Event, bestSlots: string[]) {
   URL.revokeObjectURL(url);
 }
 
-function googleCalendarUrl(event: Event, bestSlots: string[]): string {
+function googleCalendarUrl(event: Event, bestSlots: string[], responses: Response[]): string {
   const range = getStartEnd(event, bestSlots);
   if (!range) return '#';
 
   const { start, end, allDay } = range;
   const dates = `${toGoogleDate(start, allDay)}/${toGoogleDate(end, allDay)}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+  const eventUrl = `${appUrl}/event/${event.id}`;
 
   const detailParts = [
     event.description,
-    `Organized by ${event.creator_name}. Coordinated with seeya.`,
+    `Organized by ${event.creator_name}.`,
+    `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean);
+
+  const guestEmails = responses.filter(r => r.email).map(r => r.email as string);
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
@@ -108,12 +138,13 @@ function googleCalendarUrl(event: Event, bestSlots: string[]): string {
     dates,
     details: detailParts.join('\n'),
     ...(event.location ? { location: event.location } : {}),
+    ...(guestEmails.length > 0 ? { add: guestEmails.join(',') } : {}),
   });
 
   return `https://calendar.google.com/calendar/event?${params.toString()}`;
 }
 
-export function CalendarExport({ event, bestSlots }: Props) {
+export function CalendarExport({ event, bestSlots, responses = [] }: Props) {
   const slots = event.finalized_slot ? [event.finalized_slot] : bestSlots;
   if (!slots.length) return null;
 
@@ -127,13 +158,13 @@ export function CalendarExport({ event, bestSlots }: Props) {
           variant="outline"
           size="sm"
           className="gap-1.5 rounded-xl"
-          onClick={() => downloadIcs(event, slots)}
+          onClick={() => downloadIcs(event, slots, responses)}
         >
           <Calendar className="h-3.5 w-3.5" />
           Apple Calendar
         </Button>
         <a
-          href={googleCalendarUrl(event, slots)}
+          href={googleCalendarUrl(event, slots, responses)}
           target="_blank"
           rel="noopener noreferrer"
         >

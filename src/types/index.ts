@@ -27,6 +27,7 @@ export interface Response {
   id: string;
   event_id: string;
   respondent_name: string;
+  email: string | null;
   availability: string[];
   created_at: string;
 }
@@ -61,5 +62,6 @@ export interface CreateEventRequest {
 
 export interface CreateResponseRequest {
   respondent_name: string;
+  email?: string;
   availability: string[];
 }

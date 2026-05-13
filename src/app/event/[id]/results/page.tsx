@@ -4,8 +4,10 @@ import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { HeatmapGrid } from '@/components/HeatmapGrid';
 import { AiRecommendationCard } from '@/components/AiRecommendationCard';
+import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizedBanner } from '@/components/FinalizedBanner';
 import { HostTokenStore } from '@/components/HostTokenStore';
+import { ResultsAutoRefresh } from '@/components/ResultsAutoRefresh';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,6 +48,8 @@ export default async function ResultsPage({ params, searchParams }: Props) {
       <Suspense fallback={null}>
         <HostTokenStore eventId={id} />
       </Suspense>
+      {/* Auto-refresh every 30s so creator sees new responses */}
+      <ResultsAutoRefresh />
 
       <header className="flex items-center justify-between px-6 py-4 border-b border-stone-100 dark:border-stone-900">
         <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
@@ -93,7 +97,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         </div>
 
         {/* Finalized banner OR finalize button (client component handles both) */}
-        <FinalizedBanner event={event} bestSlots={bestSlots} />
+        <FinalizedBanner event={event} bestSlots={bestSlots} responses={responses} />
 
         {/* AI Recommendation */}
         <AiRecommendationCard
@@ -101,6 +105,11 @@ export default async function ResultsPage({ params, searchParams }: Props) {
           totalResponders={responses.length}
           initialRecommendation={recommendation}
         />
+
+        {/* Calendar export — only when best slots known and not yet finalized (finalized shows in banner) */}
+        {!event.finalized_slot && bestSlots.length > 0 && (
+          <CalendarExport event={event} bestSlots={bestSlots} responses={responses} />
+        )}
 
         {/* Heatmap */}
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-5 space-y-3">

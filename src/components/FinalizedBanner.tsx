@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Event } from '@/types';
+import { Event, Response } from '@/types';
 import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
 import { CheckCircle } from 'lucide-react';
@@ -23,9 +23,10 @@ function formatFinalizedSlot(slot: string, event: Event): string {
 interface Props {
   event: Event;
   bestSlots: string[];
+  responses?: Response[];
 }
 
-export function FinalizedBanner({ event, bestSlots }: Props) {
+export function FinalizedBanner({ event, bestSlots, responses = [] }: Props) {
   const [finalizedSlot, setFinalizedSlot] = useState<string | null>(event.finalized_slot);
 
   const slotsForExport = finalizedSlot ? [finalizedSlot] : bestSlots;
@@ -45,7 +46,7 @@ export function FinalizedBanner({ event, bestSlots }: Props) {
             </p>
           </div>
         </div>
-        <CalendarExport event={{ ...event, finalized_slot: finalizedSlot }} bestSlots={slotsForExport} />
+        <CalendarExport event={{ ...event, finalized_slot: finalizedSlot }} bestSlots={slotsForExport} responses={responses} />
       </div>
     );
   }

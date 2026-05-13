@@ -34,6 +34,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (invalidSlot) {
       return NextResponse.json({ error: 'Invalid availability slot format' }, { status: 400 });
     }
+    if (body.email && body.email.length > 200) {
+      return NextResponse.json({ error: 'Email too long' }, { status: 400 });
+    }
 
     const supabase = createSupabaseAdminClient();
 
@@ -64,6 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .insert({
         event_id: id,
         respondent_name: body.respondent_name.trim(),
+        email: body.email?.trim() || null,
         availability: body.availability,
       })
       .select('id')
