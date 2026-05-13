@@ -88,19 +88,20 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
 
       {/* Days mode: responsive wrap */}
       {isDayMode ? (
-        <div className="flex flex-wrap gap-2">
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${event.trip_duration && event.trip_duration > 1 ? 88 : 68}px, 1fr))` }}
+        >
           {dates.map(date => {
             const [line1, line2] = formatDateHeaderLines(date, event.trip_duration);
             const density = densityMap[date] ?? 0;
             const isBest = bestSet.has(date);
             const slotResponders = slotToResponders.get(date) ?? [];
             const isHovered = hoveredSlot === date;
-            const cellMinWidth = event.trip_duration && event.trip_duration > 1 ? 88 : 64;
             return (
               <div
                 key={date}
                 className="flex flex-col gap-1"
-                style={{ flex: `1 1 ${cellMinWidth}px`, maxWidth: event.trip_duration && event.trip_duration > 1 ? 140 : 100 }}
               >
                 <div className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 leading-tight">
                   <div>{line1}</div>

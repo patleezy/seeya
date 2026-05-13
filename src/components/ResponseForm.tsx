@@ -82,6 +82,9 @@ export function ResponseForm({ event }: Props) {
           className="rounded-2xl resize-none"
           maxLength={500}
         />
+        <p className="text-xs text-stone-400 dark:text-stone-500">
+          Comments are visible to everyone who views results.
+        </p>
       </div>
 
       <div className="space-y-2">

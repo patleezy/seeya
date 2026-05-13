@@ -8,6 +8,14 @@ import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 
+function fmtTz(tz: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZoneName: 'short', timeZone: tz })
+      .formatToParts(new Date())
+      .find(p => p.type === 'timeZoneName')?.value ?? tz;
+  } catch { return tz; }
+}
+
 function formatFinalizedSlot(slot: string, event: Event): string {
   if (event.mode === 'days') {
     return format(parseISO(slot), 'EEEE, MMMM d, yyyy');
@@ -68,7 +76,7 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
             </p>
             <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">
               {event.name} is set for <span className="font-medium">{formatFinalizedSlot(finalizedSlot, event)}</span>
-              {event.timezone ? ` (${event.timezone})` : ''}.
+              {event.timezone ? ` (${fmtTz(event.timezone)})` : ''}.
             </p>
           </div>
           {isHost && (
