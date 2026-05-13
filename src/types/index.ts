@@ -31,6 +31,7 @@ export interface Response {
   email: string | null;
   availability: string[];
   comment: string | null;
+  declined: boolean;
   created_at: string;
 }
 
@@ -68,4 +69,5 @@ export interface CreateResponseRequest {
   email?: string;
   availability: string[];
   comment?: string;
+  declined?: boolean;
 }

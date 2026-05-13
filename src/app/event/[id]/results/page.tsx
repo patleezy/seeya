@@ -39,6 +39,9 @@ export default async function ResultsPage({ params, searchParams }: Props) {
   const densityMap = buildDensityMap(responses);
   const bestSlots = recommendation?.best_slots ?? [];
 
+  const declinedCount = responses.filter(r => r.declined).length;
+  const activeCount = responses.length - declinedCount;
+
   const showNames = !event.anonymous;
 
   return (
@@ -79,6 +82,8 @@ export default async function ResultsPage({ params, searchParams }: Props) {
           <p className="text-sm text-stone-500 dark:text-stone-400">
             {responses.length === 0
               ? 'No responses yet'
+              : declinedCount > 0
+              ? `${activeCount} responded · ${declinedCount} can't make it`
               : `${responses.length} ${responses.length === 1 ? 'person has' : 'people have'} responded`}
           </p>
           {showNames && responses.length > 0 && (

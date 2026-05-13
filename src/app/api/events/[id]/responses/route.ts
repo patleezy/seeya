@@ -76,6 +76,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         email: body.email?.trim() || null,
         availability: body.availability,
         comment: body.comment?.trim() || null,
+        declined: body.declined ?? false,
       })
       .select('id')
       .single();

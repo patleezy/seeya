@@ -61,3 +61,4 @@ create policy "public read recommendations" on ai_recommendations for select usi
 -- alter table responses add column if not exists email text;
 -- alter table responses add column if not exists comment text;
 -- alter table events add column if not exists trip_duration int;
+-- alter table responses add column if not exists declined boolean not null default false;

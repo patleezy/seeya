@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Info } from 'lucide-react';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Event } from '@/types';
 
@@ -20,10 +21,10 @@ export function ResponseForm({ event }: Props) {
   const [comment, setComment] = useState('');
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [decliningMode, setDecliningMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitResponse(opts: { declined: boolean; slots: Set<string> }) {
     if (!name.trim()) return;
     setSubmitting(true);
     setError(null);
@@ -34,8 +35,9 @@ export function ResponseForm({ event }: Props) {
         body: JSON.stringify({
           respondent_name: name.trim(),
           email: email.trim() || undefined,
-          availability: Array.from(selectedSlots),
+          availability: Array.from(opts.slots),
           comment: comment.trim() || undefined,
+          declined: opts.declined,
         }),
       });
       if (!res.ok) {
@@ -46,7 +48,18 @@ export function ResponseForm({ event }: Props) {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
       setSubmitting(false);
+      setDecliningMode(false);
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await submitResponse({ declined: false, slots: selectedSlots });
+  }
+
+  async function handleDecline() {
+    setDecliningMode(true);
+    await submitResponse({ declined: true, slots: new Set() });
   }
 
   return (
@@ -71,6 +84,10 @@ export function ResponseForm({ event }: Props) {
           autoComplete="email"
           className="rounded-2xl"
         />
+        <p className="text-xs text-stone-400 dark:text-stone-500 flex items-center gap-1">
+          <Info className="h-3 w-3 flex-shrink-0" />
+          Only used to send you event details. Never shared or sold.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -96,19 +113,28 @@ export function ResponseForm({ event }: Props) {
         />
       </div>
 
-      <div>
-        {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
+      <div className="space-y-3">
+        {error && <p className="text-sm text-red-500">{error}</p>}
         <Button
           type="submit"
           size="lg"
           disabled={submitting || !name.trim()}
           className="w-full rounded-2xl"
         >
-          {submitting ? 'Submitting...' : `Submit${selectedSlots.size > 0 ? ` (${selectedSlots.size} slot${selectedSlots.size === 1 ? '' : 's'})` : ''}`}
+          {submitting && !decliningMode
+            ? 'Submitting...'
+            : `Submit${selectedSlots.size > 0 ? ` (${selectedSlots.size} slot${selectedSlots.size === 1 ? '' : 's'})` : ''}`}
         </Button>
-        <p className="text-xs text-stone-400 text-center mt-2">
-          No slots selected = you can&apos;t make it
-        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          disabled={submitting || !name.trim()}
+          className="w-full rounded-2xl"
+          onClick={handleDecline}
+        >
+          {submitting && decliningMode ? 'Declining...' : "None of these work for me"}
+        </Button>
       </div>
     </form>
   );
