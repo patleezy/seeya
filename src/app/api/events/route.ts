@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { CreateEventRequest } from '@/types';
-import { checkRateLimit } from '@/lib/validation';
+import { checkRateLimit, isValidDate, isValidTime } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +21,26 @@ export async function POST(req: NextRequest) {
     if (!['times', 'days'].includes(body.mode)) return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
     if (body.description && body.description.length > 1000) return NextResponse.json({ error: 'Description too long' }, { status: 400 });
     if (body.location && body.location.length > 500) return NextResponse.json({ error: 'Location too long' }, { status: 400 });
+
+    const invalidDate = body.dates.find(d => !isValidDate(d));
+    if (invalidDate) return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+
+    if (body.mode === 'times') {
+      const timeStart = body.time_start ?? '09:00';
+      const timeEnd = body.time_end ?? '17:00';
+      if (!isValidTime(timeStart)) return NextResponse.json({ error: 'Invalid time_start format' }, { status: 400 });
+      if (!isValidTime(timeEnd)) return NextResponse.json({ error: 'Invalid time_end format' }, { status: 400 });
+      const duration = body.slot_duration ?? 30;
+      if (!Number.isInteger(duration) || duration < 5 || duration > 480) {
+        return NextResponse.json({ error: 'slot_duration must be between 5 and 480 minutes' }, { status: 400 });
+      }
+    }
+
+    if (body.trip_duration !== undefined && body.trip_duration !== null) {
+      if (!Number.isInteger(body.trip_duration) || body.trip_duration < 1 || body.trip_duration > 365) {
+        return NextResponse.json({ error: 'trip_duration must be between 1 and 365' }, { status: 400 });
+      }
+    }
 
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase

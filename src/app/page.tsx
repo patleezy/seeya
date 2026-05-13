@@ -26,7 +26,7 @@ export default function HomePage() {
             </span>
           </h1>
           <p className="text-stone-500 dark:text-stone-400 text-base leading-relaxed">
-            The easiest way to schedule anything. Share a link, collect availability, and let{' '}
+            The easiest way to schedule anything. Create an event, share a link to collect availability, and let{' '}
             <span className="text-stone-800 dark:text-stone-200 font-medium">Seeya</span>{' '}
             pick the winner.
           </p>

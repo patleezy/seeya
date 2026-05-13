@@ -37,6 +37,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (body.email && body.email.length > 200) {
       return NextResponse.json({ error: 'Email too long' }, { status: 400 });
     }
+    if (body.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
     if (body.comment && body.comment.length > 500) {
       return NextResponse.json({ error: 'Comment too long' }, { status: 400 });
     }

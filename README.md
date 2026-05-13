@@ -7,12 +7,18 @@ Built with Next.js, Supabase, and Gemini 2.5 Flash.
 ## Features
 
 - **Drag-to-paint availability grid** — click or drag to mark free slots; touch-friendly on mobile
-- **Two modes** — specific time slots (30 min or 1 hr blocks) or full-day picker for trips
-- **Heatmap results** — amber density overlay shows where group availability overlaps
-- **Smart recommendations** — algorithm handles the clear-cut cases instantly; Gemini 2.5 Flash steps in for ambiguous overlaps with a friendly natural-language explanation
+- **Two scheduling modes** — specific time slots (custom-duration blocks) or full-day picker for trips/multi-day events
+- **Trip duration** — days-mode events support multi-day blocks; participants pick which start dates work
+- **Color-coded heatmap** — each respondent gets a distinct color; hover any cell to see exactly who's free
+- **Smart AI recommendation** — algorithm handles clear-cut cases instantly; Gemini 2.5 Flash writes nuanced prose for ambiguous overlaps
+- **Finalization flow** — event creator can lock in a time; a confirmation banner appears for all viewers with calendar export
+- **Calendar export** — download `.ics` or add to Google Calendar; includes attendee list, location, and description
+- **Comment field** — respondents can add a note; comments are visible to everyone on the results page
+- **Anonymous mode** — hide participant names from each other (organizer still sees all)
+- **Response deadline** — automatically close responses at a set date
+- **RSVP cap** — limit the number of responses
 - **Shareable links** — no login required; anyone with the link can respond
 - **Dark mode** — system-aware, toggleable
-- **Animated homepage** — slow ambient background + cycling event type headline
 
 ## Stack
 
@@ -76,27 +82,35 @@ Open [http://localhost:3000](http://localhost:3000).
 src/
 ├── app/
 │   ├── page.tsx                        # Home — create event
+│   ├── privacy/page.tsx                # Privacy policy
 │   ├── event/[id]/page.tsx             # Respond to event
-│   ├── event/[id]/results/page.tsx     # Heatmap + AI recommendation
-│   └── api/events/                     # API routes
+│   ├── event/[id]/results/page.tsx     # Heatmap + AI recommendation + finalization
+│   └── api/events/
 │       ├── route.ts                    # POST /api/events
 │       └── [id]/
 │           ├── route.ts                # GET /api/events/[id]
 │           ├── responses/route.ts      # POST responses
-│           └── recommend/route.ts      # POST AI recommendation
+│           ├── recommend/route.ts      # POST AI recommendation
+│           └── finalize/route.ts       # POST/DELETE finalization
 ├── components/
 │   ├── AvailabilityGrid.tsx            # Drag-to-paint grid (client)
-│   ├── HeatmapGrid.tsx                 # Read-only density grid
+│   ├── HeatmapGrid.tsx                 # Color-coded density grid
 │   ├── CreateEventForm.tsx             # Progressive-disclosure form
-│   ├── ResponseForm.tsx                # Wraps grid + name input
-│   ├── AiRecommendationCard.tsx        # AI result display
+│   ├── ResponseForm.tsx                # Wraps grid + name/comment inputs
+│   ├── AiRecommendationCard.tsx        # AI result display (host-only)
+│   ├── FinalizeButton.tsx              # Pick and lock in a time (host-only)
+│   ├── FinalizedBanner.tsx             # Confirmation banner + calendar export
+│   ├── CalendarExport.tsx              # .ics download + Google Calendar link
+│   ├── HostTokenStore.tsx              # Reads ?t= param → sessionStorage
+│   ├── ResultsAutoRefresh.tsx          # Polls router.refresh() every 30s
+│   ├── ShareLinkBox.tsx                # Copy-to-clipboard link
 │   ├── AnimatedEventType.tsx           # Cycling headline text
 │   ├── BackgroundAnimation.tsx         # Ambient blob animation
-│   ├── ShareLinkBox.tsx                # Copy-to-clipboard link
 │   └── ThemeToggle.tsx                 # Light/dark toggle
 ├── lib/
-│   ├── availability.ts                 # Slot generation + density math
+│   ├── availability.ts                 # Slot generation, density math, date headers
 │   ├── gemini.ts                       # Gemini API wrapper + prompt
+│   ├── validation.ts                   # Input validators + in-memory rate limiter
 │   └── supabase/
 │       ├── server.ts                   # Server client (RSC + API routes)
 │       └── client.ts                   # Browser client
@@ -109,6 +123,15 @@ src/
 2. **If there's a clear winner** (≥80% attendance, meaningfully ahead of alternatives) — a friendly template message is returned immediately with no Gemini call
 3. **If it's ambiguous** (close tie, partial attendance, zero overlap) — Gemini 2.5 Flash writes a nuanced explanation
 4. The result is cached in Supabase and returned instantly on repeat requests; the cache is invalidated when a new response is submitted
+
+## Finalization Flow
+
+The event creator gets a `host_token` when they create an event (returned in the API response, stored in `sessionStorage`). On the results page, only the creator sees:
+
+1. The AI recommendation card (with "Get recommendation" button)
+2. A **Finalize** button to lock in the best time (or choose any other slot)
+
+Once finalized, a green confirmation banner appears for all viewers with calendar export options.
 
 ## Deployment
 
@@ -124,8 +147,8 @@ The easiest path is Vercel:
 
 See `supabase/schema.sql` for the full DDL. Three tables:
 
-- `events` — event config including dates, time window, mode, and creator info
-- `responses` — per-respondent availability as an array of slot key strings
-- `ai_recommendations` — cached AI output per event (invalidated on new responses)
+- **`events`** — event config including dates, time window, mode, creator info, and advanced settings (`host_token`, `finalized_slot`, `location`, `timezone`, `anonymous`, `max_responses`, `response_deadline`, `trip_duration`)
+- **`responses`** — per-respondent availability as an array of slot key strings, plus optional `email` and `comment`
+- **`ai_recommendations`** — cached AI output per event (invalidated on new responses)
 
 Row-level security is enabled with public read policies. All writes go through the service role key in API routes.

@@ -4,7 +4,7 @@
 
 ## What this project is
 
-A scheduling coordination app. Users create events, share a link, participants drag to mark availability, and an algorithm (+ Gemini 2.5 Flash for ambiguous cases) recommends the best time.
+A scheduling coordination app. Users create events, share a link, participants drag to mark availability, and an algorithm (+ Gemini 2.5 Flash for ambiguous cases) recommends the best time. The creator can then finalize a time, which triggers a confirmation banner with calendar export for all viewers.
 
 ## Stack
 
@@ -17,7 +17,7 @@ A scheduling coordination app. Users create events, share a link, participants d
 ## Key conventions
 
 - Slot keys are plain strings: `"YYYY-MM-DD"` for days mode, `"YYYY-MM-DDTHH:MM"` for times mode. No timezone conversion — all times are local/display relative.
-- All slot math lives in `src/lib/availability.ts` — `buildSlotKeys`, `buildDensityMap`, `findBestSlots`. Keep this file pure (no DB, no API calls).
+- All slot math lives in `src/lib/availability.ts` — `buildSlotKeys`, `buildDensityMap`, `findBestSlots`, `formatDateHeaderLines`. Keep this file pure (no DB, no API calls).
 - AI recommendations are cached in the `ai_recommendations` table and invalidated automatically when a new response is submitted.
 - No auth — events are public by UUID slug. Service role key must never be used client-side.
 
@@ -44,6 +44,8 @@ npm run dev
 
 Schema is at `supabase/schema.sql`. Run it once in the Supabase SQL editor. Three tables: `events`, `responses`, `ai_recommendations`.
 
+Key `events` columns beyond the basics: `host_token uuid`, `finalized_slot text`, `finalized_at timestamptz`, `location text`, `timezone text`, `anonymous boolean`, `max_responses int`, `response_deadline timestamptz`, `trip_duration int`.
+
 ## Common tasks
 
 **Add a new event type** — update the `check` constraint in `supabase/schema.sql`, the `EventType` union in `src/types/index.ts`, and the `EVENT_TYPE_OPTIONS` array in `src/components/CreateEventForm.tsx`.
@@ -51,3 +53,41 @@ Schema is at `supabase/schema.sql`. Run it once in the Supabase SQL editor. Thre
 **Change the AI prompt** — edit `src/lib/gemini.ts`. The prompt ends with a `BEST_SLOTS: [...]` line that is parsed out of the response — keep that format.
 
 **Adjust the "clear winner" threshold** — in `src/lib/availability.ts`, `findBestSlots` returns `isUnambiguous: true` when the top block has ≥80% attendance and is ≥20% ahead of the second best. Adjust those constants to control how often Gemini is called.
+
+## Key patterns
+
+### Host token / no-auth host identity
+
+The creator's identity is tracked via a `host_token uuid` column on events. Flow:
+
+1. `POST /api/events` returns `{ id, host_token }`
+2. Client redirects to `/event/[id]?created=true&t=[host_token]`
+3. `HostTokenStore.tsx` (client component using `useSearchParams`) reads `?t=` and writes `sessionStorage.setItem('host_token_[id]', token)`
+4. `AiRecommendationCard`, `FinalizeButton`, and `FinalizedBanner` check sessionStorage in `useEffect` to decide whether to render host-only UI
+5. Finalize API routes validate the token server-side against the DB — 403 if mismatch
+
+### Native touch events (non-passive)
+
+React's synthetic `onTouchStart` registers the listener as passive, so `e.preventDefault()` is silently ignored — this means the grid scrolls instead of painting on mobile.
+
+Fix in `AvailabilityGrid.tsx`: use `useEffect` + native `el.addEventListener('touchstart', handler, { passive: false })`. All mutable state accessed inside these stable handlers via refs (`applySlotRef`, `selectedSlotsRef`, `disabledRef`) — never close over state directly.
+
+### Trip duration (multi-day blocks)
+
+- `event.dates` contains **start dates** of multi-day blocks, not individual days
+- `event.trip_duration` is the block length in days
+- `formatDateHeaderLines(date, tripDuration)` in `src/lib/availability.ts` returns a two-line `["Sat 5/22", "–Sun 5/23"]` header for trip mode
+- Calendar export end date = `addDays(startDate, trip_duration)` from date-fns
+
+### iCal RFC 5545 formatting
+
+- Lines longer than 75 octets must fold: CRLF followed by a single space. See `foldLine()` in `CalendarExport.tsx`.
+- Description newlines: join parts with `'\n'` (actual newline char, 0x0A), then let `escapeIcs()` convert to `\n` ICS escape. Do **not** pre-join with `'\\n'` — `escapeIcs` will double-escape the backslash.
+
+### CSS grid for equal cell sizing
+
+Use `repeat(auto-fill, minmax(68px, 1fr))` for both `AvailabilityGrid` and `HeatmapGrid` in days mode. `flex-wrap` causes items in the last row to stretch to fill remaining width, making cells unequal.
+
+### Respondent color coding
+
+`HeatmapGrid` accepts a `responses: Response[]` prop and builds a `slotToResponders` map internally. Colors are generated as `hsl((i * 360 / n) % 360, 65%, 55%)` for N respondents — evenly spaced hues. Anonymous mode replaces names with "Guest 1", "Guest 2", etc. in tooltips and the legend.
