@@ -59,7 +59,11 @@ export function AiRecommendationCard({ eventId, totalResponders, initialRecommen
       {recommendation ? (
         <div className="mt-3 space-y-1">
           <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
-            {recommendation.recommendation}
+            {recommendation.recommendation.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+              part.startsWith('**') && part.endsWith('**')
+                ? <strong key={i}>{part.slice(2, -2)}</strong>
+                : part
+            )}
           </p>
           <p className="text-xs text-stone-400 dark:text-stone-500 mt-2">
             Powered by Gemini · {recommendation.source === 'ai' ? 'AI analysis' : 'Smart algorithm'}

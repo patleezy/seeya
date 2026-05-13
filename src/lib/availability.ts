@@ -106,3 +106,8 @@ export function formatSlotLabel(slot: string, mode: EventMode): string {
 export function formatDateHeader(dateStr: string): string {
   return format(parseISO(dateStr), 'EEE MMM d');
 }
+
+export function formatDateHeaderLines(dateStr: string): [string, string] {
+  const date = parseISO(dateStr);
+  return [format(date, 'EEE'), format(date, 'M/d')];
+}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Event, Response, SlotDensityMap } from '@/types';
-import { buildSlotKeys, formatSlotLabel, formatDateHeader } from '@/lib/availability';
+import { buildSlotKeys, formatSlotLabel, formatDateHeaderLines } from '@/lib/availability';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -88,17 +88,21 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
       {/* Header */}
       <div
         className="grid gap-0.5 mb-0.5"
-        style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(52px, 1fr))` }}
+        style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(56px, 1fr))` }}
       >
         <div />
-        {dates.map(date => (
-          <div
-            key={date}
-            className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 truncate"
-          >
-            {formatDateHeader(date)}
-          </div>
-        ))}
+        {dates.map(date => {
+          const [line1, line2] = formatDateHeaderLines(date);
+          return (
+            <div
+              key={date}
+              className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight"
+            >
+              <div>{line1}</div>
+              <div>{line2}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Rows */}
@@ -106,7 +110,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
         <div
           key={rowIdx}
           className="grid gap-0.5 mb-0.5"
-          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(52px, 1fr))` }}
+          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(56px, 1fr))` }}
         >
           <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
             {isDayMode ? null : timeLabels[rowIdx]}

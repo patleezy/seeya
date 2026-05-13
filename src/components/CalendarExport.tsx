@@ -80,6 +80,9 @@ function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
     `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean) as string[];
 
+  // Join with actual newline so escapeIcs can correctly escape it to \n (the ICS sequence)
+  // (joining with '\\n' would cause double-escaping in escapeIcs)
+
   const attendeeLines = responses
     .filter(r => r.email)
     .map(r =>
@@ -98,7 +101,7 @@ function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
     dtStart,
     dtEnd,
     foldLine(`SUMMARY:${escapeIcs(event.name)}`),
-    descriptionParts.length ? foldLine(`DESCRIPTION:${escapeIcs(descriptionParts.join('\\n'))}`) : '',
+    descriptionParts.length ? foldLine(`DESCRIPTION:${escapeIcs(descriptionParts.join('\n'))}`) : '',
     event.location ? foldLine(`LOCATION:${escapeIcs(event.location)}`) : '',
     foldLine(`URL:${eventUrl}`),
     ...attendeeLines,

@@ -243,9 +243,10 @@ export function CreateEventForm() {
                   selected={field.value}
                   onSelect={days => field.onChange(days ?? [])}
                   disabled={{ before: new Date() }}
+                  navLayout="around"
                   className="!font-sans"
                   classNames={{
-                    root: 'w-full',
+                    root: 'rdp-root w-full',
                     months: 'w-full',
                     month: 'w-full',
                     month_grid: 'w-full',
@@ -253,6 +254,9 @@ export function CreateEventForm() {
                     selected: 'bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-900 rounded-xl',
                     today: 'text-amber-500 font-semibold',
                     disabled: 'opacity-30 cursor-not-allowed',
+                    chevron: 'rdp-chevron fill-stone-500 dark:fill-stone-300',
+                    button_previous: 'rdp-button_previous rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800',
+                    button_next: 'rdp-button_next rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800',
                   }}
                 />
               )}
