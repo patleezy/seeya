@@ -5,6 +5,7 @@ export interface Event {
   id: string;
   name: string;
   description: string | null;
+  location: string | null;
   type: EventType;
   mode: EventMode;
   creator_name: string;
@@ -13,6 +14,12 @@ export interface Event {
   time_end: string | null;
   slot_duration: number | null;
   timezone: string | null;
+  host_token: string;
+  finalized_slot: string | null;
+  finalized_at: string | null;
+  response_deadline: string | null;
+  anonymous: boolean;
+  max_responses: number | null;
   created_at: string;
 }
 
@@ -38,6 +45,7 @@ export type SlotDensityMap = Record<string, number>;
 export interface CreateEventRequest {
   name: string;
   description?: string;
+  location?: string;
   type: EventType;
   mode: EventMode;
   creator_name: string;
@@ -46,6 +54,9 @@ export interface CreateEventRequest {
   time_end?: string;
   slot_duration?: number;
   timezone?: string;
+  response_deadline?: string;
+  anonymous?: boolean;
+  max_responses?: number;
 }
 
 export interface CreateResponseRequest {

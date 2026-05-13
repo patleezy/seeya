@@ -1,18 +1,25 @@
 create extension if not exists "pgcrypto";
 
 create table events (
-  id            uuid primary key default gen_random_uuid(),
-  name          text not null,
-  description   text,
-  type          text not null check (type in ('coffee','party','meetup','happy_hour','sports','vacation','dinner','other')),
-  creator_name  text not null,
-  mode          text not null check (mode in ('times','days')),
-  dates         text[] not null,
-  time_start    text,
-  time_end      text,
-  slot_duration int,
-  timezone      text,
-  created_at    timestamptz default now()
+  id                uuid primary key default gen_random_uuid(),
+  name              text not null,
+  description       text,
+  location          text,
+  type              text not null check (type in ('coffee','party','meetup','happy_hour','sports','vacation','dinner','other')),
+  creator_name      text not null,
+  mode              text not null check (mode in ('times','days')),
+  dates             text[] not null,
+  time_start        text,
+  time_end          text,
+  slot_duration     int,
+  timezone          text,
+  host_token        uuid not null default gen_random_uuid(),
+  finalized_slot    text,
+  finalized_at      timestamptz,
+  response_deadline timestamptz,
+  anonymous         boolean not null default false,
+  max_responses     int,
+  created_at        timestamptz default now()
 );
 
 create table responses (

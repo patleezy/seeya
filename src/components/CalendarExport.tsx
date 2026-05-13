@@ -11,19 +11,19 @@ interface Props {
 }
 
 function getStartEnd(event: Event, bestSlots: string[]): { start: Date; end: Date; allDay: boolean } | null {
-  if (!bestSlots.length) return null;
+  const slots = event.finalized_slot ? [event.finalized_slot] : bestSlots;
+  if (!slots.length) return null;
 
   if (event.mode === 'days') {
-    const start = parseISO(bestSlots[0]);
-    // End = day after the last best slot for an all-day event
-    const lastSlot = parseISO(bestSlots[bestSlots.length - 1]);
+    const start = parseISO(slots[0]);
+    const lastSlot = parseISO(slots[slots.length - 1]);
     const end = addDays(lastSlot, 1);
     return { start, end, allDay: true };
   }
 
-  // times mode: start = first slot, end = last slot + slot_duration
-  const start = parseISO(bestSlots[0]);
-  const lastSlot = parseISO(bestSlots[bestSlots.length - 1]);
+  // times mode: slot is "YYYY-MM-DDTHH:MM" — parseISO requires a full ISO string
+  const start = parseISO(slots[0].replace('T', 'T') + ':00');
+  const lastSlot = parseISO(slots[slots.length - 1].replace('T', 'T') + ':00');
   const end = addMinutes(lastSlot, event.slot_duration ?? 30);
   return { start, end, allDay: false };
 }
@@ -36,6 +36,10 @@ function toIcsDate(date: Date, allDay: boolean): string {
 function toGoogleDate(date: Date, allDay: boolean): string {
   if (allDay) return format(date, 'yyyyMMdd');
   return format(date, "yyyyMMdd'T'HHmmss");
+}
+
+function escapeIcs(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 }
 
 function downloadIcs(event: Event, bestSlots: string[]) {
@@ -53,15 +57,13 @@ function downloadIcs(event: Event, bestSlots: string[]) {
     ? `DTEND;VALUE=DATE:${toIcsDate(end, true)}`
     : `DTEND:${toIcsDate(end, false)}`;
 
-  const description = [
+  const descriptionParts = [
     event.description,
     `Organized by ${event.creator_name}`,
-    `Coordinated with seeya`,
-  ]
-    .filter(Boolean)
-    .join('\\n');
+    'Coordinated with seeya',
+  ].filter(Boolean);
 
-  const ics = [
+  const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//seeya//seeya//EN',
@@ -72,15 +74,14 @@ function downloadIcs(event: Event, bestSlots: string[]) {
     `DTSTAMP:${now}`,
     dtStart,
     dtEnd,
-    `SUMMARY:${event.name}`,
-    description ? `DESCRIPTION:${description}` : '',
+    `SUMMARY:${escapeIcs(event.name)}`,
+    descriptionParts.length ? `DESCRIPTION:${escapeIcs(descriptionParts.join('\\n'))}` : '',
+    event.location ? `LOCATION:${escapeIcs(event.location)}` : '',
     'END:VEVENT',
     'END:VCALENDAR',
-  ]
-    .filter(Boolean)
-    .join('\r\n');
+  ].filter(Boolean).join('\r\n');
 
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const blob = new Blob([lines], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -96,22 +97,25 @@ function googleCalendarUrl(event: Event, bestSlots: string[]): string {
   const { start, end, allDay } = range;
   const dates = `${toGoogleDate(start, allDay)}/${toGoogleDate(end, allDay)}`;
 
-  const details = [event.description, `Organized by ${event.creator_name}. Coordinated with seeya.`]
-    .filter(Boolean)
-    .join('\n');
+  const detailParts = [
+    event.description,
+    `Organized by ${event.creator_name}. Coordinated with seeya.`,
+  ].filter(Boolean);
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: event.name,
     dates,
-    details,
+    details: detailParts.join('\n'),
+    ...(event.location ? { location: event.location } : {}),
   });
 
   return `https://calendar.google.com/calendar/event?${params.toString()}`;
 }
 
 export function CalendarExport({ event, bestSlots }: Props) {
-  if (!bestSlots.length) return null;
+  const slots = event.finalized_slot ? [event.finalized_slot] : bestSlots;
+  if (!slots.length) return null;
 
   return (
     <div className="space-y-2">
@@ -123,13 +127,13 @@ export function CalendarExport({ event, bestSlots }: Props) {
           variant="outline"
           size="sm"
           className="gap-1.5 rounded-xl"
-          onClick={() => downloadIcs(event, bestSlots)}
+          onClick={() => downloadIcs(event, slots)}
         >
           <Calendar className="h-3.5 w-3.5" />
           Apple Calendar
         </Button>
         <a
-          href={googleCalendarUrl(event, bestSlots)}
+          href={googleCalendarUrl(event, slots)}
           target="_blank"
           rel="noopener noreferrer"
         >

@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       <main className="mx-auto max-w-2xl px-6 py-12 space-y-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">Privacy Policy</h1>
-          <p className="mt-2 text-sm text-stone-400 dark:text-stone-500">Effective May 2025</p>
+          <p className="mt-2 text-sm text-stone-400 dark:text-stone-500">Effective May 2026</p>
         </div>
 
         <div className="space-y-6 text-stone-600 dark:text-stone-400 text-base leading-relaxed">
@@ -54,8 +54,9 @@ export default function PrivacyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">Data retention</h2>
             <p>
-              We don&apos;t have a formal deletion schedule. If you&apos;d like an event or response deleted,
-              email us and we&apos;ll take care of it promptly.
+              Event data (event details and participant responses) is retained for 90 days after the last response.
+              After that, events and all associated data are automatically deleted.
+              If you&apos;d like an event or response deleted sooner, email us and we&apos;ll take care of it promptly.
             </p>
           </section>
 

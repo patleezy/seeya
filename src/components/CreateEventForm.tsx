@@ -32,7 +32,6 @@ function nearestStepIndex(value: number): number {
   return closest;
 }
 
-// Common IANA timezones for the dropdown
 const COMMON_TIMEZONES = [
   'America/New_York',
   'America/Chicago',
@@ -56,6 +55,7 @@ const COMMON_TIMEZONES = [
 interface FormValues {
   name: string;
   description: string;
+  location: string;
   creator_name: string;
   mode: EventMode;
   dates: Date[];
@@ -63,6 +63,9 @@ interface FormValues {
   time_end: string;
   slot_duration: number;
   timezone: string;
+  response_deadline: string;
+  anonymous: boolean;
+  max_responses: string;
 }
 
 function getBrowserTimezone(): string {
@@ -76,7 +79,7 @@ export function CreateEventForm() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [durationInput, setDurationInput] = useState('30');
 
-  const { register, handleSubmit, control, watch, setValue, formState: {} } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, formState: {} } = useForm<FormValues>({
     defaultValues: {
       mode: 'times',
       dates: [],
@@ -84,6 +87,9 @@ export function CreateEventForm() {
       time_end: '17:00',
       slot_duration: 30,
       timezone: getBrowserTimezone(),
+      anonymous: false,
+      max_responses: '',
+      response_deadline: '',
     },
   });
 
@@ -96,19 +102,25 @@ export function CreateEventForm() {
   const showModeField = showCreatorField && !!watchCreatorName?.trim();
   const showDatePicker = showModeField;
   const showTimeFields = showDatePicker && watchMode === 'times';
-  const showSubmit = watchDates?.length > 0;
+  const showAdvancedToggle = (watchDates?.length ?? 0) > 0;
+  const showSubmit = (watchDates?.length ?? 0) > 0;
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
     setError(null);
     try {
+      const maxResp = parseInt(values.max_responses, 10);
       const body: CreateEventRequest = {
         name: values.name.trim(),
         description: values.description?.trim() || undefined,
+        location: values.location?.trim() || undefined,
         type: 'other',
         mode: values.mode,
         creator_name: values.creator_name.trim(),
         dates: values.dates.map(d => format(d, 'yyyy-MM-dd')).sort(),
+        anonymous: values.anonymous,
+        max_responses: !isNaN(maxResp) && maxResp > 0 ? maxResp : undefined,
+        response_deadline: values.response_deadline || undefined,
         ...(values.mode === 'times' && {
           time_start: values.time_start,
           time_end: values.time_end,
@@ -125,8 +137,8 @@ export function CreateEventForm() {
         const data = await res.json();
         throw new Error(data.error || 'Failed to create event');
       }
-      const { id } = await res.json();
-      router.push(`/event/${id}?created=true`);
+      const { id, host_token } = await res.json();
+      router.push(`/event/${id}?created=true&t=${host_token}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
       setSubmitting(false);
@@ -152,12 +164,20 @@ export function CreateEventForm() {
           autoComplete="off"
         />
         {showCreatorField && (
-          <Textarea
-            {...register('description')}
-            placeholder="Where are you thinking? Any details your crew should know?"
-            className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
-            rows={2}
-          />
+          <>
+            <Textarea
+              {...register('description')}
+              placeholder="Add details people should know"
+              className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
+              rows={2}
+            />
+            <Input
+              {...register('location')}
+              placeholder="Location (optional)"
+              className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
+              autoComplete="off"
+            />
+          </>
         )}
       </div>
 
@@ -262,7 +282,7 @@ export function CreateEventForm() {
             </div>
           </div>
 
-          {/* Duration — dial + free-text input */}
+          {/* Duration dial + free-text input */}
           <Controller
             control={control}
             name="slot_duration"
@@ -329,34 +349,94 @@ export function CreateEventForm() {
               );
             }}
           />
+        </div>
+      )}
 
-          {/* Advanced options */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(v => !v)}
-              className="flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
-            >
-              {showAdvanced ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Advanced options
-            </button>
+      {/* Advanced options — visible whenever dates are selected */}
+      {showAdvancedToggle && (
+        <div className="animate-[slideUp_0.3s_ease-out]">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(v => !v)}
+            className="flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+          >
+            {showAdvanced ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            Advanced options
+          </button>
 
-            {showAdvanced && (
-              <div className="mt-3 animate-[slideUp_0.2s_ease-out] space-y-2">
-                <Label htmlFor="timezone" className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
-                  Timezone
+          {showAdvanced && (
+            <div className="mt-3 animate-[slideUp_0.2s_ease-out] space-y-4 pl-4 border-l border-stone-100 dark:border-stone-800">
+
+              {/* Timezone — times mode only */}
+              {watchMode === 'times' && (
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                    Timezone
+                  </Label>
+                  <select id="timezone" {...register('timezone')} className={selectClass}>
+                    {COMMON_TIMEZONES.map(tz => (
+                      <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-stone-400 dark:text-stone-500">
+                    Shown to participants so everyone knows what timezone the times refer to.
+                  </p>
+                </div>
+              )}
+
+              {/* Response deadline */}
+              <div className="space-y-2">
+                <Label htmlFor="response_deadline" className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                  Close responses on
                 </Label>
-                <select id="timezone" {...register('timezone')} className={selectClass}>
-                  {COMMON_TIMEZONES.map(tz => (
-                    <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
-                  ))}
-                </select>
+                <input
+                  id="response_deadline"
+                  type="date"
+                  {...register('response_deadline')}
+                  className={selectClass}
+                />
                 <p className="text-xs text-stone-400 dark:text-stone-500">
-                  Shown to participants so everyone knows what timezone the times refer to.
+                  After this date, no new availability can be submitted.
                 </p>
               </div>
-            )}
-          </div>
+
+              {/* Anonymous mode */}
+              <div className="flex items-start gap-3">
+                <input
+                  id="anonymous"
+                  type="checkbox"
+                  {...register('anonymous')}
+                  className="mt-0.5 h-4 w-4 rounded border-stone-300 dark:border-stone-600 accent-stone-900 dark:accent-stone-100"
+                />
+                <div>
+                  <Label htmlFor="anonymous" className="text-stone-700 dark:text-stone-300 text-sm font-medium cursor-pointer">
+                    Hide participant names from each other
+                  </Label>
+                  <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">
+                    Only you (the organizer) can see who said what.
+                  </p>
+                </div>
+              </div>
+
+              {/* RSVP cap */}
+              <div className="space-y-2">
+                <Label htmlFor="max_responses" className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                  Max responses
+                </Label>
+                <input
+                  id="max_responses"
+                  type="number"
+                  min={1}
+                  {...register('max_responses')}
+                  placeholder="Unlimited"
+                  className={cn(selectClass, 'w-32')}
+                />
+                <p className="text-xs text-stone-400 dark:text-stone-500">
+                  Once this limit is reached, no new responses will be accepted.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

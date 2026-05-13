@@ -1,32 +1,25 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { HeatmapGrid } from '@/components/HeatmapGrid';
 import { AiRecommendationCard } from '@/components/AiRecommendationCard';
-import { CalendarExport } from '@/components/CalendarExport';
+import { FinalizedBanner } from '@/components/FinalizedBanner';
+import { HostTokenStore } from '@/components/HostTokenStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { buildSlotKeys, buildDensityMap } from '@/lib/availability';
 import { Event, Response, AiRecommendation } from '@/types';
 
-const TYPE_EMOJI: Record<string, string> = {
-  coffee:     '☕',
-  party:      '🎉',
-  meetup:     '🗓️',
-  happy_hour: '🍻',
-  sports:     '⚽',
-  vacation:   '✈️',
-  dinner:     '🍽️',
-  other:      '📅',
-};
-
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string }>;
 }
 
-export default async function ResultsPage({ params }: Props) {
+export default async function ResultsPage({ params, searchParams }: Props) {
   const { id } = await params;
+  await searchParams; // consume to avoid Next.js warning; token handling is client-side
   const supabase = await createSupabaseServerClient();
 
   const [eventResult, responsesResult, recommendationResult] = await Promise.all([
@@ -45,8 +38,15 @@ export default async function ResultsPage({ params }: Props) {
   const densityMap = buildDensityMap(responses);
   const bestSlots = recommendation?.best_slots ?? [];
 
+  const showNames = !event.anonymous;
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      {/* Store host token from URL into sessionStorage (client-only) */}
+      <Suspense fallback={null}>
+        <HostTokenStore eventId={id} />
+      </Suspense>
+
       <header className="flex items-center justify-between px-6 py-4 border-b border-stone-100 dark:border-stone-900">
         <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
           seeya
@@ -56,26 +56,29 @@ export default async function ResultsPage({ params }: Props) {
 
       <main className="mx-auto max-w-lg px-6 py-8 space-y-6">
         {/* Event header */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline">
-              {TYPE_EMOJI[event.type]} {event.type}
-            </Badge>
-            <span className="text-xs text-stone-400 dark:text-stone-500">by {event.creator_name}</span>
+            <Badge variant="outline">by {event.creator_name}</Badge>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
             {event.name}
           </h1>
+          {event.location && (
+            <p className="text-sm text-stone-500 dark:text-stone-400">📍 {event.location}</p>
+          )}
+          {event.description && (
+            <p className="text-sm text-stone-500 dark:text-stone-400">{event.description}</p>
+          )}
         </div>
 
         {/* Responder count */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <p className="text-sm text-stone-500 dark:text-stone-400">
             {responses.length === 0
               ? 'No responses yet'
               : `${responses.length} ${responses.length === 1 ? 'person has' : 'people have'} responded`}
           </p>
-          {responses.length > 0 && (
+          {showNames && responses.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {responses.map(r => (
                 <span
@@ -89,17 +92,15 @@ export default async function ResultsPage({ params }: Props) {
           )}
         </div>
 
+        {/* Finalized banner OR finalize button (client component handles both) */}
+        <FinalizedBanner event={event} bestSlots={bestSlots} />
+
         {/* AI Recommendation */}
         <AiRecommendationCard
           eventId={id}
           totalResponders={responses.length}
           initialRecommendation={recommendation}
         />
-
-        {/* Calendar export — only shown when best slots are known */}
-        {bestSlots.length > 0 && (
-          <CalendarExport event={event} bestSlots={bestSlots} />
-        )}
 
         {/* Heatmap */}
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-5 space-y-3">
@@ -109,6 +110,7 @@ export default async function ResultsPage({ params }: Props) {
             densityMap={densityMap}
             totalResponders={responses.length}
             bestSlots={bestSlots}
+            responses={responses}
           />
         </div>
 
