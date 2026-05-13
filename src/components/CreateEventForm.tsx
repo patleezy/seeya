@@ -72,6 +72,7 @@ export function CreateEventForm() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [customDuration, setCustomDuration] = useState(false);
   const [durationInput, setDurationInput] = useState('30');
+  const [customUnit, setCustomUnit] = useState<'min' | 'hr'>('min');
 
   const { register, handleSubmit, control, watch, formState: {} } = useForm<FormValues>({
     defaultValues: {
@@ -257,6 +258,7 @@ export function CreateEventForm() {
                     chevron: 'rdp-chevron fill-stone-500 dark:fill-stone-300',
                     button_previous: 'rdp-button_previous rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800',
                     button_next: 'rdp-button_next rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800',
+                    caption_label: 'hidden',
                     dropdowns: 'flex gap-1 items-center justify-center',
                     dropdown: 'appearance-none bg-transparent text-sm font-semibold text-stone-900 dark:text-stone-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-lg px-1',
                     months_dropdown: 'pr-5',
@@ -328,6 +330,7 @@ export function CreateEventForm() {
                         field.onChange(value);
                         setDurationInput(String(value));
                         setCustomDuration(false);
+                        setCustomUnit('min');
                       }}
                       className={cn(
                         'px-3 py-1.5 rounded-xl text-sm border transition-colors',
@@ -356,22 +359,46 @@ export function CreateEventForm() {
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      min={5}
-                      max={480}
+                      min={customUnit === 'min' ? 5 : 0.25}
+                      max={customUnit === 'min' ? 480 : 8}
+                      step={customUnit === 'hr' ? 0.25 : 5}
                       value={durationInput}
                       onChange={e => {
                         setDurationInput(e.target.value);
-                        const num = parseInt(e.target.value, 10);
-                        if (!isNaN(num) && num >= 5 && num <= 480) field.onChange(num);
+                        const num = parseFloat(e.target.value);
+                        const minutes = customUnit === 'hr' ? Math.round(num * 60) : Math.round(num);
+                        if (!isNaN(minutes) && minutes >= 5 && minutes <= 480) field.onChange(minutes);
                       }}
                       onBlur={() => {
-                        const num = parseInt(durationInput, 10);
-                        if (isNaN(num) || num < 5) { field.onChange(30); setDurationInput('30'); }
-                        else if (num > 480) { field.onChange(480); setDurationInput('480'); }
+                        const num = parseFloat(durationInput);
+                        const minutes = customUnit === 'hr' ? Math.round(num * 60) : Math.round(num);
+                        if (isNaN(minutes) || minutes < 5) {
+                          field.onChange(30);
+                          setDurationInput(customUnit === 'hr' ? '0.5' : '30');
+                        } else if (minutes > 480) {
+                          field.onChange(480);
+                          setDurationInput(customUnit === 'hr' ? '8' : '480');
+                        }
                       }}
                       className="w-20 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
                     />
-                    <span className="text-sm text-stone-500 dark:text-stone-400">min</span>
+                    <select
+                      value={customUnit}
+                      onChange={e => {
+                        const newUnit = e.target.value as 'min' | 'hr';
+                        if (newUnit === 'hr') {
+                          const hrs = parseFloat((field.value / 60).toFixed(2));
+                          setDurationInput(String(hrs));
+                        } else {
+                          setDurationInput(String(field.value));
+                        }
+                        setCustomUnit(newUnit);
+                      }}
+                      className={cn(selectClass, 'w-24')}
+                    >
+                      <option value="min">min</option>
+                      <option value="hr">hr</option>
+                    </select>
                   </div>
                 )}
               </div>

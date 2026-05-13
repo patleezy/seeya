@@ -150,6 +150,8 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
           ref={containerRef}
           className="select-none grid gap-2"
           style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${tripDuration && tripDuration > 1 ? 88 : 68}px, 1fr))` }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseEnter}
         >
           {dates.map(date => {
             const [line1, line2] = formatDateHeaderLines(date, tripDuration);
@@ -171,7 +173,7 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
                       ? 'bg-emerald-400 dark:bg-emerald-500'
                       : disabled
                       ? 'bg-stone-100 dark:bg-stone-800'
-                      : 'bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700'
+                      : 'bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 cursor-pointer'
                   )}
                 />
               </div>
