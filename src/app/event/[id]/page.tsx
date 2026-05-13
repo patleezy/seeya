@@ -84,8 +84,8 @@ export default async function EventPage({ params, searchParams }: Props) {
             <p className="text-sm text-stone-500 dark:text-stone-400">{e.description}</p>
           )}
           {e.mode === 'times' && e.time_start && e.time_end && (
-            <p className="text-xs text-stone-400 dark:text-stone-500">
-              {fmt12h(e.time_start)} – {fmt12h(e.time_end)} · {e.slot_duration ?? 30}-minute slots
+            <p className="text-sm text-stone-500 dark:text-stone-400">
+              {fmt12h(e.time_start)} – {fmt12h(e.time_end)} · {e.slot_duration ?? 30}-min slots
               {e.timezone ? ` · ${e.timezone}` : ''}
             </p>
           )}

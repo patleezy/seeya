@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -13,11 +14,20 @@ interface Props {
 }
 
 export function AiRecommendationCard({ eventId, totalResponders, initialRecommendation }: Props) {
+  const router = useRouter();
+  const [isHost, setIsHost] = useState(false);
   const [recommendation, setRecommendation] = useState<AiRecommendation | null>(
     initialRecommendation ?? null
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (sessionStorage.getItem(`host_token_${eventId}`)) setIsHost(true);
+  }, [eventId]);
+
+  // Only visible to the event creator
+  if (!isHost) return null;
 
   async function fetchRecommendation() {
     if (totalResponders === 0) return;
@@ -28,6 +38,8 @@ export function AiRecommendationCard({ eventId, totalResponders, initialRecommen
       if (!res.ok) throw new Error('Failed to get recommendation');
       const data = await res.json();
       setRecommendation(data);
+      // Refresh server data so FinalizedBanner picks up bestSlots immediately
+      router.refresh();
     } catch {
       setError('Something went wrong. Try again in a moment.');
     } finally {

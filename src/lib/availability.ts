@@ -111,7 +111,7 @@ export function formatDateHeaderLines(dateStr: string, tripDuration?: number | n
   const date = parseISO(dateStr);
   if (tripDuration && tripDuration > 1) {
     const end = addDays(date, tripDuration - 1);
-    return [format(date, 'M/d'), `–${format(end, 'M/d')}`];
+    return [`${format(date, 'EEE')} ${format(date, 'M/d')}`, `–${format(end, 'EEE')} ${format(end, 'M/d')}`];
   }
   return [format(date, 'EEE'), format(date, 'M/d')];
 }

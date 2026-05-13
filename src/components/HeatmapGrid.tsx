@@ -59,6 +59,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
   }
 
   const colCount = dates.length;
+  const colMinWidth = isDayMode && event.trip_duration && event.trip_duration > 1 ? 80 : 56;
 
   if (totalResponders === 0) {
     return (
@@ -88,7 +89,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
       {/* Header */}
       <div
         className="grid gap-0.5 mb-0.5"
-        style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(56px, 1fr))` }}
+        style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
       >
         <div />
         {dates.map(date => {
@@ -110,7 +111,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
         <div
           key={rowIdx}
           className="grid gap-0.5 mb-0.5"
-          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(56px, 1fr))` }}
+          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
         >
           <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
             {isDayMode ? null : timeLabels[rowIdx]}

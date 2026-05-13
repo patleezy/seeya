@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { HeatmapGrid } from '@/components/HeatmapGrid';
 import { AiRecommendationCard } from '@/components/AiRecommendationCard';
-import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizedBanner } from '@/components/FinalizedBanner';
 import { HostTokenStore } from '@/components/HostTokenStore';
 import { ResultsAutoRefresh } from '@/components/ResultsAutoRefresh';
@@ -99,17 +98,12 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         {/* Finalized banner OR finalize button (client component handles both) */}
         <FinalizedBanner event={event} bestSlots={bestSlots} responses={responses} />
 
-        {/* AI Recommendation */}
+        {/* AI Recommendation — host only (component handles the check internally) */}
         <AiRecommendationCard
           eventId={id}
           totalResponders={responses.length}
           initialRecommendation={recommendation}
         />
-
-        {/* Calendar export — only when best slots known and not yet finalized (finalized shows in banner) */}
-        {!event.finalized_slot && bestSlots.length > 0 && (
-          <CalendarExport event={event} bestSlots={bestSlots} responses={responses} />
-        )}
 
         {/* Heatmap */}
         <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-5 space-y-3">

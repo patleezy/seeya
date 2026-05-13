@@ -108,6 +108,9 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (disabled) return;
+      // Prevent browser from firing synthetic mousedown/click after touch,
+      // which would toggle the cell a second time
+      e.preventDefault();
       const touch = e.touches[0];
       const el = document.elementFromPoint(touch.clientX, touch.clientY);
       const slot = getSlotFromElement(el);
@@ -136,6 +139,7 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
   }, []);
 
   const colCount = dates.length;
+  const colMinWidth = isDayMode && event.trip_duration && event.trip_duration > 1 ? 80 : 56;
 
   return (
     <div className="w-full overflow-x-auto">
@@ -157,7 +161,7 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
         {/* Header row: date labels */}
         <div
           className="grid gap-0.5 mb-0.5"
-          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(56px, 1fr))` }}
+          style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
         >
           <div /> {/* time label spacer */}
           {dates.map(date => {
@@ -179,7 +183,7 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
           <div
             key={rowIdx}
             className="grid gap-0.5 mb-0.5"
-            style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(56px, 1fr))` }}
+            style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
           >
             {/* Time label */}
             <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
