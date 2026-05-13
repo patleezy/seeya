@@ -112,9 +112,9 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
       ``,
       `Add to your calendar:`,
       `• Google Calendar: ${gcalUrl}`,
-      `• Apple Calendar (.ics): ${eventUrl}`,
+      `• Apple Calendar (.ics): ${appUrl}/api/events/${event.id}/ics`,
       ``,
-      `— ${event.creator_name} via Seeya`,
+      `— ${event.creator_name} · https://seeya.digital`,
     ].filter(s => s !== null).join('\n');
 
     return `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines)}`;

@@ -14,23 +14,15 @@ import { cn } from '@/lib/utils';
 import { EventMode, CreateEventRequest } from '@/types';
 import 'react-day-picker/style.css';
 
-const DURATION_STEPS = [15, 30, 45, 60, 90, 120, 180, 240];
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const hrs = minutes / 60;
-  return hrs === Math.floor(hrs) ? `${hrs} hr${hrs > 1 ? 's' : ''}` : `${hrs} hrs`;
-}
-
-function nearestStepIndex(value: number): number {
-  let closest = 0;
-  let minDiff = Math.abs(DURATION_STEPS[0] - value);
-  for (let i = 1; i < DURATION_STEPS.length; i++) {
-    const diff = Math.abs(DURATION_STEPS[i] - value);
-    if (diff < minDiff) { minDiff = diff; closest = i; }
-  }
-  return closest;
-}
+const DURATION_PRESETS: { value: number; label: string }[] = [
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 45, label: '45 min' },
+  { value: 60, label: '1 hr' },
+  { value: 120, label: '2 hrs' },
+  { value: 180, label: '3 hrs' },
+  { value: 240, label: '4 hrs' },
+];
 
 const COMMON_TIMEZONES = [
   'America/New_York',
@@ -78,6 +70,7 @@ export function CreateEventForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [customDuration, setCustomDuration] = useState(false);
   const [durationInput, setDurationInput] = useState('30');
 
   const { register, handleSubmit, control, watch, formState: {} } = useForm<FormValues>({
@@ -248,7 +241,9 @@ export function CreateEventForm() {
                   selected={field.value}
                   onSelect={days => field.onChange(days ?? [])}
                   disabled={{ before: new Date() }}
-                  navLayout="around"
+                  captionLayout="dropdown"
+                  startMonth={new Date()}
+                  endMonth={new Date(new Date().getFullYear() + 4, 11)}
                   className="!font-sans"
                   classNames={{
                     root: 'rdp-root w-full',
@@ -262,6 +257,10 @@ export function CreateEventForm() {
                     chevron: 'rdp-chevron fill-stone-500 dark:fill-stone-300',
                     button_previous: 'rdp-button_previous rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800',
                     button_next: 'rdp-button_next rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800',
+                    dropdowns: 'flex gap-1 items-center justify-center',
+                    dropdown: 'appearance-none bg-transparent text-sm font-semibold text-stone-900 dark:text-stone-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400 rounded-lg px-1',
+                    months_dropdown: 'pr-5',
+                    years_dropdown: 'pr-5',
                   }}
                 />
               )}
@@ -311,72 +310,72 @@ export function CreateEventForm() {
             </div>
           </div>
 
-          {/* Duration dial + free-text input */}
+          {/* Duration chips */}
           <Controller
             control={control}
             name="slot_duration"
-            render={({ field }) => {
-              const stepIndex = nearestStepIndex(field.value);
-              return (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide shrink-0">
-                      Slot size
-                    </Label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min={5}
-                        max={480}
-                        value={durationInput}
-                        onChange={e => {
-                          setDurationInput(e.target.value);
-                          const num = parseInt(e.target.value, 10);
-                          if (!isNaN(num) && num >= 5 && num <= 480) field.onChange(num);
-                        }}
-                        onBlur={() => {
-                          const num = parseInt(durationInput, 10);
-                          if (isNaN(num) || num < 5) { field.onChange(30); setDurationInput('30'); }
-                          else if (num > 480) { field.onChange(480); setDurationInput('480'); }
-                        }}
-                        className="w-16 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-2 py-1 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
-                      />
-                      <span className="text-xs text-stone-400">min</span>
-                    </div>
-                  </div>
-                  <div className="relative pt-1">
-                    <input
-                      type="range"
-                      min={0}
-                      max={DURATION_STEPS.length - 1}
-                      step={1}
-                      value={stepIndex}
-                      onChange={e => {
-                        const val = DURATION_STEPS[Number(e.target.value)];
-                        field.onChange(val);
-                        setDurationInput(String(val));
+            render={({ field }) => (
+              <div className="space-y-2">
+                <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
+                  Duration
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_PRESETS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        field.onChange(value);
+                        setDurationInput(String(value));
+                        setCustomDuration(false);
                       }}
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer bg-stone-200 dark:bg-stone-700 accent-stone-900 dark:accent-stone-100"
-                    />
-                    <div className="flex justify-between mt-1.5">
-                      {DURATION_STEPS.map(d => (
-                        <span
-                          key={d}
-                          className={cn(
-                            'text-[10px] transition-colors',
-                            field.value === d
-                              ? 'text-stone-900 dark:text-stone-100 font-medium'
-                              : 'text-stone-300 dark:text-stone-600'
-                          )}
-                        >
-                          {formatDuration(d)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                      className={cn(
+                        'px-3 py-1.5 rounded-xl text-sm border transition-colors',
+                        !customDuration && field.value === value
+                          ? 'bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-900 border-stone-900 dark:border-stone-50'
+                          : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500'
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCustomDuration(true)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-xl text-sm border transition-colors',
+                      customDuration
+                        ? 'bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-900 border-stone-900 dark:border-stone-50'
+                        : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500'
+                    )}
+                  >
+                    Custom
+                  </button>
                 </div>
-              );
-            }}
+                {customDuration && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={5}
+                      max={480}
+                      value={durationInput}
+                      onChange={e => {
+                        setDurationInput(e.target.value);
+                        const num = parseInt(e.target.value, 10);
+                        if (!isNaN(num) && num >= 5 && num <= 480) field.onChange(num);
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(durationInput, 10);
+                        if (isNaN(num) || num < 5) { field.onChange(30); setDurationInput('30'); }
+                        else if (num > 480) { field.onChange(480); setDurationInput('480'); }
+                      }}
+                      className="w-20 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    />
+                    <span className="text-sm text-stone-500 dark:text-stone-400">min</span>
+                  </div>
+                )}
+              </div>
+            )}
           />
         </div>
       )}

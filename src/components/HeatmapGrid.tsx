@@ -58,6 +58,12 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
     });
   }
 
+  // Only ring bestSlots that have the maximum density — avoids highlighting
+  // slots where just one person is free when a higher-overlap slot exists
+  const maxBestDensity = bestSlots.length > 0
+    ? Math.max(...bestSlots.map(s => densityMap[s] ?? 0))
+    : 0;
+
   const colCount = dates.length;
   const colMinWidth = isDayMode && event.trip_duration && event.trip_duration > 1 ? 80 : 56;
 
@@ -95,7 +101,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
           {dates.map(date => {
             const [line1, line2] = formatDateHeaderLines(date, event.trip_duration);
             const density = densityMap[date] ?? 0;
-            const isBest = bestSet.has(date);
+            const isBest = bestSet.has(date) && density >= maxBestDensity && maxBestDensity > 0;
             const slotResponders = slotToResponders.get(date) ?? [];
             const isHovered = hoveredSlot === date;
             return (
@@ -175,12 +181,12 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
               className="grid gap-0.5 mb-0.5"
               style={{ gridTemplateColumns: `72px repeat(${colCount}, minmax(${colMinWidth}px, 1fr))` }}
             >
-              <div className="flex items-center justify-end pr-2 text-xs text-stone-400 dark:text-stone-500 leading-none">
+              <div className="flex items-center justify-end pr-2 text-xs text-stone-600 dark:text-stone-400 leading-none">
                 {timeLabels[rowIdx]}
               </div>
               {row.map((slot, colIdx) => {
                 const density = densityMap[slot] ?? 0;
-                const isBest = bestSet.has(slot);
+                const isBest = bestSet.has(slot) && (densityMap[slot] ?? 0) >= maxBestDensity && maxBestDensity > 0;
                 const slotResponders = slotToResponders.get(slot) ?? [];
                 const isHovered = hoveredSlot === slot;
                 return (
