@@ -1,5 +1,5 @@
 import { Event, Response, SlotDensityMap, EventMode } from '@/types';
-import { format, addMinutes, parseISO } from 'date-fns';
+import { format, addMinutes, addDays, parseISO } from 'date-fns';
 
 export function buildSlotKeys(event: Event): string[] {
   if (event.mode === 'days') {
@@ -107,7 +107,11 @@ export function formatDateHeader(dateStr: string): string {
   return format(parseISO(dateStr), 'EEE MMM d');
 }
 
-export function formatDateHeaderLines(dateStr: string): [string, string] {
+export function formatDateHeaderLines(dateStr: string, tripDuration?: number | null): [string, string] {
   const date = parseISO(dateStr);
+  if (tripDuration && tripDuration > 1) {
+    const end = addDays(date, tripDuration - 1);
+    return [format(date, 'M/d'), `–${format(end, 'M/d')}`];
+  }
   return [format(date, 'EEE'), format(date, 'M/d')];
 }

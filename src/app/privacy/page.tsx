@@ -23,7 +23,9 @@ export default function PrivacyPage() {
             <p>
               When you create an event, we store the event name, an optional description, and your name as the organizer.
               When someone responds to an event, we store their name and the time slots they selected.
-              That&apos;s it — no email addresses, no passwords, no accounts.
+              Respondents may optionally provide an email address — this is used solely to pre-populate calendar invites
+              (Apple Calendar / Google Calendar) and is never used for marketing or shared with third parties.
+              No passwords or accounts are required.
             </p>
           </section>
 
@@ -31,7 +33,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-medium text-stone-900 dark:text-stone-100">What we don&apos;t collect</h2>
             <p>
               We do not use tracking cookies, advertising pixels, or analytics SDKs. We do not sell or share your data with third parties.
-              We do not require you to create an account or provide contact information.
+              We do not require an account, password, or any contact information to use Seeya.
             </p>
           </section>
 

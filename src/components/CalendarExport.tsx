@@ -18,7 +18,8 @@ function getStartEnd(event: Event, bestSlots: string[]): { start: Date; end: Dat
   if (event.mode === 'days') {
     const start = parseISO(slots[0]);
     const lastSlot = parseISO(slots[slots.length - 1]);
-    const end = addDays(lastSlot, 1);
+    // trip_duration covers how many days the trip spans; 1 (default) = single day
+    const end = addDays(lastSlot, event.trip_duration ?? 1);
     return { start, end, allDay: true };
   }
 

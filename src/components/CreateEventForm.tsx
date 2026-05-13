@@ -66,6 +66,7 @@ interface FormValues {
   response_deadline: string;
   anonymous: boolean;
   max_responses: string;
+  trip_duration: string;
 }
 
 function getBrowserTimezone(): string {
@@ -90,6 +91,7 @@ export function CreateEventForm() {
       anonymous: false,
       max_responses: '',
       response_deadline: '',
+      trip_duration: '1',
     },
   });
 
@@ -127,6 +129,9 @@ export function CreateEventForm() {
           slot_duration: values.slot_duration,
           timezone: values.timezone || undefined,
         }),
+        ...(values.mode === 'days' && {
+          trip_duration: parseInt(values.trip_duration, 10) > 1 ? parseInt(values.trip_duration, 10) : undefined,
+        }),
       };
       const res = await fetch('/api/events', {
         method: 'POST',
@@ -158,7 +163,7 @@ export function CreateEventForm() {
       <div className="space-y-2">
         <Input
           {...register('name', { required: true })}
-          placeholder="Team lunch, birthday bash, weekend trip..."
+          placeholder="coffee catchup, birthday party, family vacay..."
           className="h-14 text-lg rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
           autoFocus
           autoComplete="off"
@@ -262,6 +267,26 @@ export function CreateEventForm() {
               )}
             />
           </div>
+        </div>
+      )}
+
+      {/* Trip duration — only for days mode */}
+      {showDatePicker && watchMode === 'days' && (
+        <div className="animate-[slideUp_0.3s_ease-out] space-y-1.5">
+          <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">Trip duration</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={30}
+              {...register('trip_duration')}
+              className="w-16 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <span className="text-sm text-stone-500 dark:text-stone-400">day(s)</span>
+          </div>
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            Set to 2+ for multi-day trips — respondents pick a start date block (e.g. a 3-day weekend)
+          </p>
         </div>
       )}
 

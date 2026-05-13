@@ -20,6 +20,7 @@ export interface Event {
   response_deadline: string | null;
   anonymous: boolean;
   max_responses: number | null;
+  trip_duration: number | null;
   created_at: string;
 }
 
@@ -58,6 +59,7 @@ export interface CreateEventRequest {
   response_deadline?: string;
   anonymous?: boolean;
   max_responses?: number;
+  trip_duration?: number;
 }
 
 export interface CreateResponseRequest {

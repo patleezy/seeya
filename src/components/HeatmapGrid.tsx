@@ -92,7 +92,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
       >
         <div />
         {dates.map(date => {
-          const [line1, line2] = formatDateHeaderLines(date);
+          const [line1, line2] = formatDateHeaderLines(date, isDayMode ? event.trip_duration : null);
           return (
             <div
               key={date}

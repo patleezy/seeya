@@ -161,7 +161,7 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
         >
           <div /> {/* time label spacer */}
           {dates.map(date => {
-            const [line1, line2] = formatDateHeaderLines(date);
+            const [line1, line2] = formatDateHeaderLines(date, isDayMode ? event.trip_duration : null);
             return (
               <div
                 key={date}

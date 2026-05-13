@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         timezone: body.mode === 'times' ? (body.timezone ?? null) : null,
         anonymous: body.anonymous ?? false,
         max_responses: body.max_responses ?? null,
+        trip_duration: body.mode === 'days' && body.trip_duration && body.trip_duration > 1 ? body.trip_duration : null,
         response_deadline: body.response_deadline
           ? new Date(body.response_deadline).toISOString()
           : null,

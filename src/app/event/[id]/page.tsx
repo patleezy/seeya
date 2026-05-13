@@ -15,6 +15,13 @@ interface Props {
   searchParams: Promise<{ created?: string; t?: string }>;
 }
 
+function fmt12h(t: string): string {
+  const [h, m] = t.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const displayH = h % 12 || 12;
+  return m > 0 ? `${displayH}:${m.toString().padStart(2, '0')} ${period}` : `${displayH} ${period}`;
+}
+
 export default async function EventPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { created } = await searchParams;
@@ -75,6 +82,17 @@ export default async function EventPage({ params, searchParams }: Props) {
           )}
           {e.description && (
             <p className="text-sm text-stone-500 dark:text-stone-400">{e.description}</p>
+          )}
+          {e.mode === 'times' && e.time_start && e.time_end && (
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              {fmt12h(e.time_start)} – {fmt12h(e.time_end)} · {e.slot_duration ?? 30}-minute slots
+              {e.timezone ? ` · ${e.timezone}` : ''}
+            </p>
+          )}
+          {e.mode === 'days' && e.trip_duration && e.trip_duration > 1 && (
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              {e.trip_duration}-day trip options — select which start dates work for you
+            </p>
           )}
           {e.response_deadline && !deadlinePassed && (
             <p className="text-xs text-stone-400 dark:text-stone-500">
