@@ -25,7 +25,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = `${event.creator_name} invites you to ${event.name}`;
   const description = "Mark when you're free — seeya will find the best time for everyone.";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+  const rawUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 
   return {
     title,
@@ -75,7 +76,8 @@ export default async function EventPage({ params, searchParams }: Props) {
   if (error || !event) notFound();
 
   const e = event as Event;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const appUrl = rawAppUrl.startsWith('http') ? rawAppUrl : `https://${rawAppUrl}`;
   const shareUrl = `${appUrl}/event/${id}`;
 
   const now = new Date();

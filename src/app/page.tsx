@@ -2,6 +2,7 @@ import { AnimatedEventType } from '@/components/AnimatedEventType';
 import { BackgroundAnimation } from '@/components/BackgroundAnimation';
 import { CreateEventForm } from '@/components/CreateEventForm';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { MyEvents } from '@/components/MyEvents';
 
 export default function HomePage() {
   return (
@@ -36,6 +37,7 @@ export default function HomePage() {
         <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-950/80 backdrop-blur-sm p-6 shadow-sm">
           <CreateEventForm />
         </div>
+        <MyEvents />
       </main>
 
       {/* Footer */}
