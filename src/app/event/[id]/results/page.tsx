@@ -139,7 +139,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         <div className="flex gap-3">
           <Link href={`/event/${id}`} className="flex-1">
             <Button variant="outline" className="w-full rounded-2xl">
-              ← Add your availability
+              Add your availability →
             </Button>
           </Link>
         </div>

@@ -6,6 +6,7 @@ import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
 import { CheckCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getAppUrl } from '@/lib/utils';
 import { format, parseISO, addMinutes, addDays } from 'date-fns';
 
 function fmtTz(tz: string): string {
@@ -44,7 +45,7 @@ function buildGcalUrl(slot: string, event: Event): string {
     endStr = format(end, "yyyyMMdd'T'HHmmss");
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+  const appUrl = getAppUrl();
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: event.name,
@@ -95,7 +96,7 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
     const emailList = responses.filter(r => r.email && !r.declined).map(r => r.email as string);
     if (emailList.length === 0) return null;
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+    const appUrl = getAppUrl();
     const eventUrl = `${appUrl}/event/${event.id}`;
     const formattedDate = formatFinalizedSlot(finalizedSlot, event);
     const tzSuffix = event.timezone ? ` (${fmtTz(event.timezone)})` : '';
@@ -114,7 +115,7 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
       `• Google Calendar: ${gcalUrl}`,
       `• Apple Calendar (.ics): ${appUrl}/api/events/${event.id}/ics`,
       ``,
-      `— ${event.creator_name} · https://seeya.digital`,
+      `— ${event.creator_name} · ${getAppUrl()}`,
     ].filter(s => s !== null).join('\n');
 
     return `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines)}`;
