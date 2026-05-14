@@ -22,6 +22,10 @@ const DURATION_PRESETS: { value: number; label: string }[] = [
   { value: 120, label: '2 hrs' },
   { value: 180, label: '3 hrs' },
   { value: 240, label: '4 hrs' },
+  { value: 300, label: '5 hrs' },
+  { value: 360, label: '6 hrs' },
+  { value: 420, label: '7 hrs' },
+  { value: 480, label: '8 hrs' },
 ];
 
 const COMMON_TIMEZONES = [
@@ -149,7 +153,7 @@ export function CreateEventForm() {
     return { value: `${h}:00`, label: i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM` };
   });
 
-  const selectClass = 'w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400';
+  const selectClass = 'w-full rounded-xl border-2 border-transparent bg-[var(--bg-input)] px-4 py-3.5 text-base text-stone-900 dark:text-stone-50 focus:outline-none focus:border-amber-400 focus:bg-[var(--bg-card)] transition-all duration-200';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -232,7 +236,7 @@ export function CreateEventForm() {
           <Label className="text-stone-500 dark:text-stone-400 text-xs uppercase tracking-wide">
             Which dates? <span className="normal-case font-normal">({watchDates?.length ?? 0} selected)</span>
           </Label>
-          <div className="rounded-2xl border border-stone-200 dark:border-stone-700 overflow-hidden bg-white dark:bg-stone-900 p-2">
+          <div className="rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden bg-[var(--bg-card)] p-2">
             <Controller
               control={control}
               name="dates"
@@ -282,7 +286,7 @@ export function CreateEventForm() {
               min={1}
               max={30}
               {...register('trip_duration')}
-              className="w-16 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-16 rounded-xl border-2 border-transparent bg-[var(--bg-input)] px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:border-amber-400 focus:bg-[var(--bg-card)] transition-all duration-200"
             />
             <span className="text-sm text-stone-500 dark:text-stone-400">day(s)</span>
           </div>
@@ -334,11 +338,12 @@ export function CreateEventForm() {
                         setCustomUnit('min');
                       }}
                       className={cn(
-                        'px-3 py-1.5 rounded-xl text-sm border transition-colors',
+                        'px-4 py-2 rounded-xl border-2 text-sm font-medium',
                         !customDuration && field.value === value
-                          ? 'bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-900 border-stone-900 dark:border-stone-50'
-                          : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500'
+                          ? 'bg-stone-900 text-white border-stone-900 dark:bg-stone-800 dark:text-stone-50 dark:border-stone-700 scale-105'
+                          : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 hover:-translate-y-0.5'
                       )}
+                      style={{ transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                     >
                       {label}
                     </button>
@@ -347,11 +352,12 @@ export function CreateEventForm() {
                     type="button"
                     onClick={() => setCustomDuration(true)}
                     className={cn(
-                      'px-3 py-1.5 rounded-xl text-sm border transition-colors',
+                      'px-4 py-2 rounded-xl border-2 text-sm font-medium',
                       customDuration
-                        ? 'bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-900 border-stone-900 dark:border-stone-50'
-                        : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500'
+                        ? 'bg-stone-900 text-white border-stone-900 dark:bg-stone-800 dark:text-stone-50 dark:border-stone-700 scale-105'
+                        : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-400 hover:-translate-y-0.5'
                     )}
+                    style={{ transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                   >
                     Custom
                   </button>
@@ -381,7 +387,7 @@ export function CreateEventForm() {
                           setDurationInput(customUnit === 'hr' ? '8' : '480');
                         }
                       }}
-                      className="w-20 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      className="w-20 rounded-xl border-2 border-transparent bg-[var(--bg-input)] px-3 py-2 text-base text-center text-stone-900 dark:text-stone-50 focus:outline-none focus:border-amber-400 focus:bg-[var(--bg-card)] transition-all duration-200"
                     />
                     <select
                       value={customUnit}

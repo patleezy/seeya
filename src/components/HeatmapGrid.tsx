@@ -116,9 +116,17 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                 <div
                   className={cn(
                     'relative h-12 rounded-sm transition-colors',
-                    density > 0 ? 'bg-stone-50 dark:bg-stone-800' : 'bg-stone-100 dark:bg-stone-800/50',
-                    isBest && 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-emerald-400'
+                    isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]'
                   )}
+                  style={{
+                    background: density === 0
+                      ? 'var(--color-stone-100)'
+                      : density === 1
+                      ? 'linear-gradient(135deg, var(--color-amber-100), var(--color-stone-100))'
+                      : density === 2
+                      ? 'linear-gradient(135deg, var(--color-amber-200), var(--color-amber-100))'
+                      : 'linear-gradient(135deg, var(--color-amber-400), var(--color-amber-200))',
+                  }}
                   onMouseEnter={() => setHoveredSlot(date)}
                   onMouseLeave={() => setHoveredSlot(null)}
                 >
@@ -193,10 +201,18 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                   <div
                     key={colIdx}
                     className={cn(
-                      'relative rounded-sm transition-colors h-7',
-                      density > 0 ? 'bg-stone-50 dark:bg-stone-800' : 'bg-stone-100 dark:bg-stone-800/50',
-                      isBest && 'ring-2 ring-emerald-500 ring-offset-1 dark:ring-emerald-400'
+                      'relative rounded-sm h-7 transition-colors',
+                      isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]'
                     )}
+                    style={{
+                      background: density === 0
+                        ? 'var(--color-stone-100)'
+                        : density === 1
+                        ? 'linear-gradient(135deg, var(--color-amber-100), var(--color-stone-100))'
+                        : density === 2
+                        ? 'linear-gradient(135deg, var(--color-amber-200), var(--color-amber-100))'
+                        : 'linear-gradient(135deg, var(--color-amber-400), var(--color-amber-200))',
+                    }}
                     onMouseEnter={() => setHoveredSlot(slot)}
                     onMouseLeave={() => setHoveredSlot(null)}
                   >
