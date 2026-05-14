@@ -1,9 +1,16 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-geist-sans' });
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafaf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0a09' },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://seeyasoon.digital'),
