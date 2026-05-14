@@ -9,10 +9,41 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { Event } from '@/types';
+import type { Metadata } from 'next';
 
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ created?: string; t?: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createSupabaseServerClient();
+  const { data: event } = await supabase.from('events').select('name, creator_name').eq('id', id).single();
+
+  if (!event) return {};
+
+  const title = `${event.creator_name} invites you to ${event.name}`;
+  const description = "Mark when you're free — seeya will find the best time for everyone.";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+
+  return {
+    title,
+    openGraph: {
+      title,
+      description,
+      url: `${appUrl}/event/${id}`,
+      siteName: 'seeya',
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: title }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['/og-image.png'],
+    },
+  };
 }
 
 function fmt12h(t: string): string {
@@ -65,8 +96,9 @@ export default async function EventPage({ params, searchParams }: Props) {
       </Suspense>
 
       <header className="flex items-center justify-between px-6 py-4 border-b border-stone-100 dark:border-stone-900">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-          seeya
+        <Link href="/">
+          <img src="/logo-full-light.svg" alt="seeya" className="h-8 dark:hidden" />
+          <img src="/logo-full-dark.svg" alt="seeya" className="h-8 hidden dark:block" />
         </Link>
         <ThemeToggle />
       </header>

@@ -10,8 +10,9 @@ export default function HomePage() {
 
       {/* Nav */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4">
-        <span className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-          seeya
+        <span>
+          <img src="/logo-full-light.svg" alt="seeya" className="h-8 dark:hidden" />
+          <img src="/logo-full-dark.svg" alt="seeya" className="h-8 hidden dark:block" />
         </span>
         <ThemeToggle />
       </header>
