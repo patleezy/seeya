@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,15 @@ interface Props {
   event: Event;
 }
 
+interface StoredResponse {
+  responseId: string;
+  respondentName: string;
+}
+
+function storageKey(eventId: string) {
+  return `seeya_responded_${eventId}`;
+}
+
 export function ResponseForm({ event }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -23,12 +32,31 @@ export function ResponseForm({ event }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [decliningMode, setDecliningMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingResponse, setExistingResponse] = useState<StoredResponse | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey(event.id));
+      if (stored) {
+        const parsed = JSON.parse(stored) as StoredResponse;
+        setExistingResponse(parsed);
+        setName(parsed.respondentName);
+      }
+    } catch {}
+  }, [event.id]);
 
   async function submitResponse(opts: { declined: boolean; slots: Set<string> }) {
     if (!name.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
+      // Delete previous response before submitting updated one
+      if (existingResponse) {
+        await fetch(`/api/events/${event.id}/responses/${existingResponse.responseId}`, {
+          method: 'DELETE',
+        });
+      }
+
       const res = await fetch(`/api/events/${event.id}/responses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,6 +72,13 @@ export function ResponseForm({ event }: Props) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to submit');
       }
+      const data = await res.json();
+      try {
+        localStorage.setItem(storageKey(event.id), JSON.stringify({
+          responseId: data.id,
+          respondentName: name.trim(),
+        }));
+      } catch {}
       router.push(`/event/${event.id}/results`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -64,6 +99,12 @@ export function ResponseForm({ event }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {existingResponse && (
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          Updating {existingResponse.respondentName}&apos;s response — your previous submission will be replaced.
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="respondent_name">Your name</Label>
         <Input
@@ -74,6 +115,7 @@ export function ResponseForm({ event }: Props) {
           required
           autoComplete="name"
           className="rounded-2xl"
+          readOnly={!!existingResponse}
         />
         <Input
           id="respondent_email"
@@ -123,7 +165,9 @@ export function ResponseForm({ event }: Props) {
         >
           {submitting && !decliningMode
             ? 'Submitting...'
-            : `Submit${selectedSlots.size > 0 ? ` (${selectedSlots.size} slot${selectedSlots.size === 1 ? '' : 's'})` : ''}`}
+            : existingResponse
+              ? `Update${selectedSlots.size > 0 ? ` (${selectedSlots.size} slot${selectedSlots.size === 1 ? '' : 's'})` : ''}`
+              : `Submit${selectedSlots.size > 0 ? ` (${selectedSlots.size} slot${selectedSlots.size === 1 ? '' : 's'})` : ''}`}
         </Button>
         <Button
           type="button"

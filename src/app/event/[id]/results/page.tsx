@@ -8,8 +8,8 @@ import { FinalizedBanner } from '@/components/FinalizedBanner';
 import { HostTokenStore } from '@/components/HostTokenStore';
 import { ResultsAutoRefresh } from '@/components/ResultsAutoRefresh';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ResponseCTA } from '@/components/ResponseCTA';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { buildSlotKeys, buildDensityMap } from '@/lib/availability';
 import { Event, Response, AiRecommendation } from '@/types';
 
@@ -136,13 +136,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <Link href={`/event/${id}`} className="flex-1">
-            <Button variant="outline" className="w-full rounded-2xl">
-              Add your availability →
-            </Button>
-          </Link>
-        </div>
+        <ResponseCTA eventId={id} />
       </main>
     </div>
   );

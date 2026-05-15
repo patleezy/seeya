@@ -5,8 +5,20 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { MyEvents } from '@/components/MyEvents';
 
 export default function HomePage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'seeya',
+    url: 'https://seeyasoon.digital',
+    description: 'The easiest way to schedule anything. Create an event, share a link to collect availability, and let Seeya find the best time.',
+    applicationCategory: 'UtilitiesApplication',
+    operatingSystem: 'Web',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  };
+
   return (
     <div className="relative min-h-screen bg-[var(--background)] flex flex-col">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <BackgroundAnimation />
 
       {/* Nav */}
