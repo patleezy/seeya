@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { Event } from '@/types';
+import { getAppUrl } from '@/lib/utils';
 import { parseISO, addMinutes, addDays, format } from 'date-fns';
 
 // ---------------------------------------------------------------------------
@@ -92,8 +93,7 @@ export async function GET(
     ? `DTEND;VALUE=DATE:${toIcsDate(end, true)}`
     : `DTEND:${toIcsDate(end, false)}`;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
-  const eventUrl = `${appUrl}/event/${event.id}`;
+  const eventUrl = `${getAppUrl()}/event/${event.id}`;
 
   const descriptionParts = [
     event.description,

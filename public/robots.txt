@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /privacy
+Disallow: /event/
+Disallow: /api/
+
+Sitemap: https://seeyasoon.digital/sitemap.xml

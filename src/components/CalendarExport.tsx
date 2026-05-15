@@ -3,6 +3,7 @@
 import { Calendar, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Event, Response } from '@/types';
+import { getAppUrl } from '@/lib/utils';
 import { parseISO, addMinutes, addDays, format } from 'date-fns';
 
 interface Props {
@@ -71,7 +72,7 @@ function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
     ? `DTEND;VALUE=DATE:${toIcsDate(end, true)}`
     : `DTEND:${toIcsDate(end, false)}`;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+  const appUrl = getAppUrl();
   const eventUrl = `${appUrl}/event/${event.id}`;
 
   const descriptionParts = [
@@ -125,7 +126,7 @@ function googleCalendarUrl(event: Event, bestSlots: string[], responses: Respons
 
   const { start, end, allDay } = range;
   const dates = `${toGoogleDate(start, allDay)}/${toGoogleDate(end, allDay)}`;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://seeyasoon.digital';
+  const appUrl = getAppUrl();
   const eventUrl = `${appUrl}/event/${event.id}`;
 
   const detailParts = [

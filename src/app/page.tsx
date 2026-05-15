@@ -2,16 +2,30 @@ import { AnimatedEventType } from '@/components/AnimatedEventType';
 import { BackgroundAnimation } from '@/components/BackgroundAnimation';
 import { CreateEventForm } from '@/components/CreateEventForm';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { MyEvents } from '@/components/MyEvents';
 
 export default function HomePage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'seeya',
+    url: 'https://seeyasoon.digital',
+    description: 'The easiest way to schedule anything. Create an event, share a link to collect availability, and let Seeya find the best time.',
+    applicationCategory: 'UtilitiesApplication',
+    operatingSystem: 'Web',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  };
+
   return (
     <div className="relative min-h-screen bg-[var(--background)] flex flex-col">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <BackgroundAnimation />
 
       {/* Nav */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4">
-        <span className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-          seeya
+        <span>
+          <img src="/logo-full-light.svg" alt="seeya" className="h-8 dark:hidden" />
+          <img src="/logo-full-dark.svg" alt="seeya" className="h-8 hidden dark:block" />
         </span>
         <ThemeToggle />
       </header>
@@ -35,6 +49,7 @@ export default function HomePage() {
         <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-950/80 backdrop-blur-sm p-6 shadow-sm">
           <CreateEventForm />
         </div>
+        <MyEvents />
       </main>
 
       {/* Footer */}

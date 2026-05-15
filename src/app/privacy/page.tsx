@@ -5,8 +5,9 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <header className="flex items-center justify-between px-6 py-4 border-b border-stone-100 dark:border-stone-900">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-          seeya
+        <Link href="/">
+          <img src="/logo-full-light.svg" alt="seeya" className="h-8 dark:hidden" />
+          <img src="/logo-full-dark.svg" alt="seeya" className="h-8 hidden dark:block" />
         </Link>
         <ThemeToggle />
       </header>

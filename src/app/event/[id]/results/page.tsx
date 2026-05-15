@@ -8,8 +8,8 @@ import { FinalizedBanner } from '@/components/FinalizedBanner';
 import { HostTokenStore } from '@/components/HostTokenStore';
 import { ResultsAutoRefresh } from '@/components/ResultsAutoRefresh';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ResponseCTA } from '@/components/ResponseCTA';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { buildSlotKeys, buildDensityMap } from '@/lib/availability';
 import { Event, Response, AiRecommendation } from '@/types';
 
@@ -54,8 +54,9 @@ export default async function ResultsPage({ params, searchParams }: Props) {
       <ResultsAutoRefresh />
 
       <header className="flex items-center justify-between px-6 py-4 border-b border-stone-100 dark:border-stone-900">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-          seeya
+        <Link href="/">
+          <img src="/logo-full-light.svg" alt="seeya" className="h-8 dark:hidden" />
+          <img src="/logo-full-dark.svg" alt="seeya" className="h-8 hidden dark:block" />
         </Link>
         <ThemeToggle />
       </header>
@@ -135,13 +136,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <Link href={`/event/${id}`} className="flex-1">
-            <Button variant="outline" className="w-full rounded-2xl">
-              ← Add your availability
-            </Button>
-          </Link>
-        </div>
+        <ResponseCTA eventId={id} />
       </main>
     </div>
   );

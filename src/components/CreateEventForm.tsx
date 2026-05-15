@@ -137,6 +137,11 @@ export function CreateEventForm() {
         throw new Error(data.error || 'Failed to create event');
       }
       const { id, host_token } = await res.json();
+      try {
+        const saved = JSON.parse(localStorage.getItem('seeya_my_events') ?? '[]');
+        saved.unshift({ id, name: values.name, host_token, created_at: new Date().toISOString() });
+        localStorage.setItem('seeya_my_events', JSON.stringify(saved.slice(0, 20)));
+      } catch {}
       router.push(`/event/${id}?created=true&t=${host_token}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
