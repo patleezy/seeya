@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { Event } from '@/types';
+import { LocationDisplay } from '@/components/LocationDisplay';
 import type { Metadata } from 'next';
 
 interface Props {
@@ -119,9 +120,7 @@ export default async function EventPage({ params, searchParams }: Props) {
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
             {e.name}
           </h1>
-          {e.location && (
-            <p className="text-sm text-stone-500 dark:text-stone-400">📍 {e.location}</p>
-          )}
+          {e.location && <LocationDisplay location={e.location} />}
           {e.description && (
             <p className="text-sm text-stone-500 dark:text-stone-400">{e.description}</p>
           )}

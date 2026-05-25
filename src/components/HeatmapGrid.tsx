@@ -18,6 +18,11 @@ function respondentColor(index: number, total: number): string {
   return `hsl(${hue}, 65%, 55%)`;
 }
 
+const DOTS_THRESHOLD = 8;   // show individual dots up to this count
+const COUNT_THRESHOLD = 24; // show count badge up to this count; ≥25 → nothing
+const LEGEND_MAX = 12;      // max legend chips before truncation
+const LEGEND_HIDE = 21;     // hide legend entirely at this count
+
 export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [] }: Props) {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
 
@@ -26,6 +31,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
   const isDayMode = event.mode === 'days';
   const bestSet = new Set(bestSlots);
   const isAnonymous = event.anonymous;
+  const n = responses.length;
 
   // Build slot → respondent name list
   const slotToResponders = new Map<string, string[]>();
@@ -38,7 +44,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
   });
 
   // Color per respondent (by index in responses array)
-  const respondentColors = responses.map((_, i) => respondentColor(i, responses.length));
+  const respondentColors = responses.map((_, i) => respondentColor(i, n));
   const respondentColorMap = new Map(responses.map((r, i) => [r.respondent_name, respondentColors[i]]));
 
   let timeLabels: string[] = [];
@@ -58,8 +64,6 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
     });
   }
 
-  // Only ring bestSlots that have the maximum density — avoids highlighting
-  // slots where just one person is free when a higher-overlap slot exists
   const maxBestDensity = bestSlots.length > 0
     ? Math.max(...bestSlots.map(s => densityMap[s] ?? 0))
     : 0;
@@ -75,12 +79,66 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
     );
   }
 
+  function renderCellOverlay(slotResponders: string[], dotSize: number) {
+    if (slotResponders.length === 0) return null;
+    if (n <= DOTS_THRESHOLD) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center flex-wrap gap-0.5 p-0.5">
+          {slotResponders.map((name, di) => (
+            <span
+              key={di}
+              className="rounded-full flex-shrink-0"
+              style={{ width: dotSize, height: dotSize, backgroundColor: respondentColorMap.get(name) ?? '#888' }}
+            />
+          ))}
+        </div>
+      );
+    }
+    if (n <= COUNT_THRESHOLD) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-semibold text-stone-700 dark:text-stone-200 leading-none drop-shadow-sm">
+            {slotResponders.length}
+          </span>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  function renderTooltip(slot: string, slotResponders: string[], density: number) {
+    if (hoveredSlot !== slot || slotResponders.length === 0) return null;
+    return (
+      <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
+        <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+          {slotResponders.map((name, ni) => (
+            <div key={ni} className="flex items-center gap-1.5">
+              <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
+              {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
+            </div>
+          ))}
+          <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
+            {density}/{totalResponders} free
+          </div>
+        </div>
+        <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
+      </div>
+    );
+  }
+
+  function cellBg(density: number): string {
+    if (density === 0) return 'var(--color-stone-100)';
+    if (density === 1) return 'linear-gradient(135deg, var(--color-amber-100), var(--color-stone-100))';
+    if (density === 2) return 'linear-gradient(135deg, var(--color-amber-200), var(--color-amber-100))';
+    return 'linear-gradient(135deg, var(--color-amber-400), var(--color-amber-200))';
+  }
+
   return (
     <div className="w-full overflow-x-auto">
       {/* Respondent legend */}
-      {responses.length > 0 && (
+      {n > 0 && n < LEGEND_HIDE && (
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {responses.map((r, i) => (
+          {responses.slice(0, LEGEND_MAX).map((r, i) => (
             <span
               key={r.id}
               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-white font-medium"
@@ -89,6 +147,11 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
               {isAnonymous ? `Guest ${i + 1}` : r.respondent_name}
             </span>
           ))}
+          {n > LEGEND_MAX && (
+            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300">
+              +{n - LEGEND_MAX} more
+            </span>
+          )}
         </div>
       )}
 
@@ -103,60 +166,20 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
             const density = densityMap[date] ?? 0;
             const isBest = bestSet.has(date) && density >= maxBestDensity && maxBestDensity > 0;
             const slotResponders = slotToResponders.get(date) ?? [];
-            const isHovered = hoveredSlot === date;
             return (
-              <div
-                key={date}
-                className="flex flex-col gap-1"
-              >
+              <div key={date} className="flex flex-col gap-1">
                 <div className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 leading-tight">
                   <div>{line1}</div>
                   <div>{line2}</div>
                 </div>
                 <div
-                  className={cn(
-                    'relative h-12 rounded-sm transition-colors',
-                    isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]'
-                  )}
-                  style={{
-                    background: density === 0
-                      ? 'var(--color-stone-100)'
-                      : density === 1
-                      ? 'linear-gradient(135deg, var(--color-amber-100), var(--color-stone-100))'
-                      : density === 2
-                      ? 'linear-gradient(135deg, var(--color-amber-200), var(--color-amber-100))'
-                      : 'linear-gradient(135deg, var(--color-amber-400), var(--color-amber-200))',
-                  }}
+                  className={cn('relative h-12 rounded-sm transition-colors', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
+                  style={{ background: cellBg(density) }}
                   onMouseEnter={() => setHoveredSlot(date)}
                   onMouseLeave={() => setHoveredSlot(null)}
                 >
-                  {slotResponders.length > 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center flex-wrap gap-0.5 p-0.5">
-                      {slotResponders.map((name, di) => (
-                        <span
-                          key={di}
-                          className="rounded-full flex-shrink-0"
-                          style={{ width: 10, height: 10, backgroundColor: respondentColorMap.get(name) ?? '#888' }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {isHovered && slotResponders.length > 0 && (
-                    <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
-                      <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-                        {slotResponders.map((name, ni) => (
-                          <div key={ni} className="flex items-center gap-1.5">
-                            <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
-                            {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
-                          </div>
-                        ))}
-                        <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
-                          {density}/{totalResponders} free
-                        </div>
-                      </div>
-                      <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
-                    </div>
-                  )}
+                  {renderCellOverlay(slotResponders, 10)}
+                  {renderTooltip(date, slotResponders, density)}
                 </div>
               </div>
             );
@@ -196,49 +219,16 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                 const density = densityMap[slot] ?? 0;
                 const isBest = bestSet.has(slot) && (densityMap[slot] ?? 0) >= maxBestDensity && maxBestDensity > 0;
                 const slotResponders = slotToResponders.get(slot) ?? [];
-                const isHovered = hoveredSlot === slot;
                 return (
                   <div
                     key={colIdx}
-                    className={cn(
-                      'relative rounded-sm h-7 transition-colors',
-                      isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]'
-                    )}
-                    style={{
-                      background: density === 0
-                        ? 'var(--color-stone-100)'
-                        : density === 1
-                        ? 'linear-gradient(135deg, var(--color-amber-100), var(--color-stone-100))'
-                        : density === 2
-                        ? 'linear-gradient(135deg, var(--color-amber-200), var(--color-amber-100))'
-                        : 'linear-gradient(135deg, var(--color-amber-400), var(--color-amber-200))',
-                    }}
+                    className={cn('relative rounded-sm h-7 transition-colors', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
+                    style={{ background: cellBg(density) }}
                     onMouseEnter={() => setHoveredSlot(slot)}
                     onMouseLeave={() => setHoveredSlot(null)}
                   >
-                    {slotResponders.length > 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center flex-wrap gap-0.5 p-0.5">
-                        {slotResponders.map((name, di) => (
-                          <span key={di} className="rounded-full flex-shrink-0" style={{ width: 7, height: 7, backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
-                        ))}
-                      </div>
-                    )}
-                    {isHovered && slotResponders.length > 0 && (
-                      <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
-                        <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-                          {slotResponders.map((name, ni) => (
-                            <div key={ni} className="flex items-center gap-1.5">
-                              <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
-                              {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
-                            </div>
-                          ))}
-                          <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
-                            {density}/{totalResponders} free
-                          </div>
-                        </div>
-                        <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
-                      </div>
-                    )}
+                    {renderCellOverlay(slotResponders, 7)}
+                    {renderTooltip(slot, slotResponders, density)}
                   </div>
                 );
               })}
