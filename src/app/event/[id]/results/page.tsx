@@ -45,7 +45,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
   const showNames = !event.anonymous;
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--bg-outer)]">
       {/* Store host token from URL into sessionStorage (client-only) */}
       <Suspense fallback={null}>
         <HostTokenStore eventId={id} />
@@ -124,7 +124,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         />
 
         {/* Heatmap */}
-        <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-5 space-y-3">
+        <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-[var(--bg-card)] p-5 space-y-3">
           <h2 className="text-base font-medium text-stone-900 dark:text-stone-50">Group availability</h2>
           <HeatmapGrid
             event={event}

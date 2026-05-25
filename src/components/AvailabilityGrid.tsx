@@ -168,14 +168,19 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
                 <div
                   data-slot={date}
                   className={cn(
-                    'h-12 rounded-sm transition-colors duration-75',
+                    'relative h-12 rounded-sm',
                     isSelected
-                      ? 'bg-emerald-400 dark:bg-emerald-500'
+                      ? 'bg-emerald-400 dark:bg-emerald-500 scale-105 shadow-[inset_0_2px_8px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.1),0_4px_12px_rgba(16,185,129,0.25)]'
                       : disabled
                       ? 'bg-stone-100 dark:bg-stone-800'
-                      : 'bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 cursor-pointer'
+                      : 'bg-stone-100 hover:bg-stone-200 hover:scale-[1.03] dark:bg-stone-800 dark:hover:bg-stone-700 cursor-pointer'
                   )}
-                />
+                  style={{ transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                >
+                  {isSelected && (
+                    <div className="absolute inset-0 rounded-sm bg-gradient-to-br from-white/30 to-transparent pointer-events-none" />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -226,14 +231,19 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
                       key={colIdx}
                       data-slot={slot}
                       className={cn(
-                        'rounded-sm transition-colors duration-75 cursor-pointer h-7',
+                        'relative rounded-sm cursor-pointer h-7',
                         isSelected
-                          ? 'bg-emerald-400 dark:bg-emerald-500'
+                          ? 'bg-emerald-400 dark:bg-emerald-500 scale-105 shadow-[inset_0_2px_8px_rgba(255,255,255,0.4),inset_0_-2px_6px_rgba(0,0,0,0.1),0_4px_12px_rgba(16,185,129,0.25)]'
                           : disabled
                           ? 'bg-stone-100 dark:bg-stone-800'
-                          : 'bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700'
+                          : 'bg-stone-100 hover:bg-stone-200 hover:scale-[1.03] dark:bg-stone-800 dark:hover:bg-stone-700'
                       )}
-                    />
+                      style={{ transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    >
+                      {isSelected && (
+                        <div className="absolute inset-0 rounded-sm bg-gradient-to-br from-white/30 to-transparent pointer-events-none" />
+                      )}
+                    </div>
                   );
                 })}
               </div>
