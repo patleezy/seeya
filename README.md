@@ -9,11 +9,12 @@ Built with Next.js, Supabase, and Gemini 2.5 Flash.
 - **Drag-to-paint availability grid** — click or drag to mark free slots; touch-friendly on mobile
 - **Two scheduling modes** — specific time slots (custom-duration blocks) or full-day picker for trips/multi-day events
 - **Trip duration** — days-mode events support multi-day blocks; participants pick which start dates work
-- **Color-coded heatmap** — each respondent gets a distinct color; hover any cell to see exactly who's free
+- **Color-coded heatmap** — each respondent gets a distinct color; hover any cell to see exactly who's free; scales gracefully for large groups (dots for ≤8, count badge for 9–24, gradient-only for 25+)
 - **Smart AI recommendation** — algorithm handles clear-cut cases instantly; Gemini 2.5 Flash writes nuanced prose for ambiguous overlaps
 - **Finalization flow** — event creator can lock in a time; a confirmation banner appears for all viewers with calendar export
-- **Calendar export** — download `.ics` or add to Google Calendar; includes location and description; direct `.ics` endpoint at `/api/events/[id]/ics`
-- **Email invites** — after finalization, the host can open a pre-filled email (via `mailto:`) with BCC list, subject, and body containing Google Calendar and `.ics` links
+- **Calendar export** — download `.ics` (includes Apple Maps link) or add to Google Calendar (includes Google Maps link); direct `.ics` endpoint at `/api/events/[id]/ics`
+- **Email invites** — after finalization, the host can open a pre-filled email (via `mailto:`) with BCC list and calendar links; shows partial count (e.g. "2 of 3") when not all respondents provided an email
+- **Smart location display** — plain-text addresses show Google Maps + Apple Maps deep links on event pages; share URLs open directly; live preview appears below the input as you type during event creation
 - **Decline option** — participants can mark "none of these work for me" without selecting slots
 - **Comment field** — respondents can add a note; comments are visible to everyone on the results page
 - **Anonymous mode** — hide participant names from each other (organizer still sees all)
