@@ -12,6 +12,7 @@ import { ResponseCTA } from '@/components/ResponseCTA';
 import { Badge } from '@/components/ui/badge';
 import { buildSlotKeys, buildDensityMap } from '@/lib/availability';
 import { Event, Response, AiRecommendation } from '@/types';
+import { LocationDisplay } from '@/components/LocationDisplay';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -70,9 +71,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
             {event.name}
           </h1>
-          {event.location && (
-            <p className="text-sm text-stone-500 dark:text-stone-400">📍 {event.location}</p>
-          )}
+          {event.location && <LocationDisplay location={event.location} />}
           {event.description && (
             <p className="text-sm text-stone-500 dark:text-stone-400">{event.description}</p>
           )}
