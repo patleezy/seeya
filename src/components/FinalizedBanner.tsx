@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Event, Response, SlotDensityMap } from '@/types';
 import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
@@ -69,11 +69,24 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
   const [finalizedSlot, setFinalizedSlot] = useState<string | null>(event.finalized_slot);
   const [isHost, setIsHost] = useState(false);
   const [unfinalizingPending, setUnfinalizingPending] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const token = sessionStorage.getItem(`host_token_${event.id}`);
     if (token) setIsHost(true);
   }, [event.id]);
+
+  useEffect(() => {
+    if (!finalizedSlot || !bannerRef.current) return;
+    const container = bannerRef.current;
+    const colors = ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
+    for (let i = 0; i < 30; i++) {
+      const particle = document.createElement('div');
+      particle.style.cssText = `position:absolute;width:8px;height:8px;border-radius:2px;left:${Math.random() * 100}%;top:-10px;background-color:${colors[Math.floor(Math.random() * colors.length)]};animation:confettiFall ${2 + Math.random() * 2}s ease-out forwards;animation-delay:${Math.random() * 0.5}s;pointer-events:none`;
+      container.appendChild(particle);
+      setTimeout(() => particle.remove(), 5000);
+    }
+  }, [finalizedSlot]);
 
   async function handleUnfinalize() {
     const token = sessionStorage.getItem(`host_token_${event.id}`);
@@ -109,14 +122,14 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
       ``,
       `${event.name} is set for ${formattedDate}${tzSuffix}.`,
       event.location ? `📍 ${event.location}` : null,
-      event.description ? `\n${event.description}` : null,
+      event.description ? event.description : null,
       ``,
       `Add to your calendar:`,
       `• Google Calendar: ${gcalUrl}`,
       `• Apple Calendar (.ics): ${appUrl}/api/events/${event.id}/ics`,
       ``,
       `— ${event.creator_name} · ${getAppUrl()}`,
-    ].filter(s => s !== null).join('\n');
+    ].filter(s => s !== null).join('\r\n');
 
     return `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines)}`;
   }, [finalizedSlot, responses, event]);
@@ -130,7 +143,7 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
 
   if (finalizedSlot) {
     return (
-      <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-5 space-y-3">
+      <div ref={bannerRef} className="relative overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-5 space-y-3">
         <div className="flex items-start gap-3">
           <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">

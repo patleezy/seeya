@@ -42,11 +42,12 @@ export function ShareLinkBox({ url }: { url: string }) {
       type="button"
       onClick={handleCopy}
       className={cn(
-        'w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all duration-200',
+        'w-full text-left flex items-center gap-3 rounded-xl border-2 p-3',
         copied
-          ? 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/30 scale-[1.01]'
+          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 scale-[1.02] shadow-[0_0_0_4px_rgba(16,185,129,0.1)]'
           : 'border-stone-200 bg-stone-50 hover:border-stone-300 dark:border-stone-700 dark:bg-stone-900 dark:hover:border-stone-600'
       )}
+      style={{ transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
     >
       <span className="flex-1 text-sm text-stone-600 dark:text-stone-400 break-all font-mono leading-relaxed">
         {url}

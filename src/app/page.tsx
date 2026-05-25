@@ -17,7 +17,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[var(--background)] flex flex-col">
+    <div className="relative min-h-screen bg-[var(--bg-outer)] flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <BackgroundAnimation />
 
@@ -46,7 +46,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-950/80 backdrop-blur-sm p-6 shadow-sm">
+        <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-[var(--bg-card)] p-6 shadow-sm">
           <CreateEventForm />
         </div>
         <MyEvents />

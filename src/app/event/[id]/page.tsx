@@ -92,7 +92,7 @@ export default async function EventPage({ params, searchParams }: Props) {
   const responsesClosed = deadlinePassed || isFull;
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--bg-outer)]">
       <Suspense fallback={null}>
         <HostTokenStore eventId={id} />
       </Suspense>
@@ -172,7 +172,7 @@ export default async function EventPage({ params, searchParams }: Props) {
 
         {/* Response form */}
         {!responsesClosed && (
-          <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 p-6 space-y-4">
+          <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-[var(--bg-card)] p-6 space-y-4">
             <h2 className="text-base font-medium text-stone-900 dark:text-stone-50">Add your availability</h2>
             <ResponseForm event={e} />
           </div>

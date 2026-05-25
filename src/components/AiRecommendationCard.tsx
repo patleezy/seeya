@@ -65,9 +65,9 @@ export function AiRecommendationCard({ eventId, totalResponders, initialRecommen
 
   if (totalResponders === 0) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
+      <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-900 bg-gradient-to-br from-amber-50 to-white dark:from-[oklch(0.25_0.05_85)] dark:to-stone-900 p-5 opacity-0 animate-[aiReveal_0.6s_cubic-bezier(0.34,1.56,0.64,1)_forwards]">
         <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-4 w-4 animate-[sparkle_3s_ease-in-out_infinite]" />
           <span className="text-sm font-medium">AI Recommendation</span>
         </div>
         <p className="mt-2 text-sm text-amber-600 dark:text-amber-500">
@@ -78,15 +78,15 @@ export function AiRecommendationCard({ eventId, totalResponders, initialRecommen
   }
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
+    <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-900 bg-gradient-to-br from-amber-50 to-white dark:from-[oklch(0.25_0.05_85)] dark:to-stone-900 p-5 opacity-0 animate-[aiReveal_0.6s_cubic-bezier(0.34,1.56,0.64,1)_forwards]">
       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-        <Sparkles className="h-4 w-4" />
+        <Sparkles className="h-4 w-4 animate-[sparkle_3s_ease-in-out_infinite]" />
         <span className="text-sm font-medium">AI Recommendation</span>
       </div>
 
       {recommendation ? (
         <div className="mt-3 space-y-1">
-          <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
+          <p className="text-base leading-[1.7] text-stone-800 dark:text-stone-200 font-medium">
             {recommendation.recommendation.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
               part.startsWith('**') && part.endsWith('**')
                 ? <strong key={i}>{part.slice(2, -2)}</strong>
