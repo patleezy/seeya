@@ -122,13 +122,13 @@ export function ResponseForm({ event }: Props) {
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          placeholder="Email (optional — for calendar invites)"
+          placeholder="Email (optional)"
           autoComplete="email"
           className="rounded-2xl"
         />
         <p className="text-xs text-stone-400 dark:text-stone-500 flex items-center gap-1">
           <Info className="h-3 w-3 flex-shrink-0" />
-          Only used to send you event details. Never shared or sold.
+          Receive a calendar invite when the event is finalized. Your email is only used for event planning and never sold to third parties.
         </p>
       </div>
 

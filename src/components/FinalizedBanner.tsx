@@ -157,9 +157,9 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
           </div>
           {isHost && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 flex-shrink-0"
+              className="text-xs flex-shrink-0 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg"
               onClick={handleUnfinalize}
               disabled={unfinalizingPending}
             >
