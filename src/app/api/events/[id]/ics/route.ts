@@ -24,6 +24,11 @@ function foldLine(line: string): string {
   return chunks.join('\r\n');
 }
 
+function appleMapsUrl(location: string): string {
+  if (location.startsWith('http')) return location;
+  return `https://maps.apple.com/?q=${encodeURIComponent(location)}`;
+}
+
 function toIcsDate(date: Date, allDay: boolean): string {
   if (allDay) return format(date, 'yyyyMMdd');
   return format(date, "yyyyMMdd'T'HHmmss");
@@ -97,7 +102,7 @@ export async function GET(
 
   const descriptionParts = [
     event.description,
-    event.location ? `📍 ${event.location}` : null,
+    event.location ? `📍 ${event.location}\n${appleMapsUrl(event.location)}` : null,
     `Organized by ${event.creator_name}`,
     `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean) as string[];
