@@ -113,3 +113,42 @@ The slot duration UI in `CreateEventForm.tsx` uses pill chips (`DURATION_PRESETS
 ### DayPicker dropdown navigation
 
 `react-day-picker` v9 with `captionLayout="dropdown"` renders both a static `caption_label` span and interactive month/year selects. Hide the static label with `caption_label: 'hidden'` in the `classNames` prop. The chevron arrows use a CSS variable that overrides Tailwind fill classes — use `!fill-stone-500 dark:!fill-stone-300` (Tailwind `!important`) on the `chevron` classname to ensure correct colors in both modes.
+
+### Smart location display
+
+`LocationDisplay.tsx` is a shared component used on both event pages. It detects whether the location string is a URL (starts with `http`) and renders accordingly:
+- **URL** → a single "View on maps ↗" link
+- **Plain text** → the address text + "Google Maps ↗" + "Apple Maps ↗" deep links
+
+`CreateEventForm.tsx` watches the location field (`watch('location')`) and renders `<LocationDisplay>` as a live preview below the input once 3+ characters are typed. Calendar exports use platform-specific links: Apple Maps URL in iCal DESCRIPTION, Google Maps URL in Google Calendar details.
+
+## Visual design system
+
+These are intentional, load-bearing design choices — do not remove or simplify them.
+
+### Three-tier color system
+CSS variables defined in `src/app/globals.css` under `@theme {}`:
+- `--bg-outer` — page background (lightest tier)
+- `--bg-card` — card/panel background
+- `--bg-input` — input field background
+
+Dark mode overrides in `.dark {}`. Use `bg-[var(--bg-outer)]` and `bg-[var(--bg-card)]` on layout containers — never hardcode `bg-white` or `bg-stone-*` for page/card backgrounds.
+
+### Custom keyframes (globals.css)
+- `wave1` / `wave2` / `wave3` — 25/30/35s GPU-only transform animation used by `BackgroundAnimation.tsx` (3 radial-gradient layers with `fixed` positioning)
+- `confettiFall` — DOM particle burst injected into `bannerRef` on event finalization (`FinalizedBanner.tsx`)
+- `bestSlotPulse` — animated box-shadow ring on top heatmap slots (`HeatmapGrid.tsx`)
+- `aiReveal` — slide-up + fade-in entrance for the AI recommendation card (`AiRecommendationCard.tsx`)
+- `sparkle` — subtle scale/opacity loop on the Sparkles icon (`AiRecommendationCard.tsx`)
+
+### Spring physics easing
+Use `cubic-bezier(0.34, 1.56, 0.64, 1)` for interactive elements — availability grid cells, share link box copy animation, form duration chips. This produces a spring overshoot that makes taps feel physical. Pass it as an inline `style={{ transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}` rather than a Tailwind `duration-*` class.
+
+### Heatmap amber warmth
+`HeatmapGrid` cells use inline `background` style with amber gradients keyed to density:
+- density 0 → `var(--color-stone-100)`
+- density 1 → `linear-gradient(135deg, var(--color-amber-100), var(--color-stone-100))`
+- density 2 → `linear-gradient(135deg, var(--color-amber-200), var(--color-amber-100))`
+- density 3+ → `linear-gradient(135deg, var(--color-amber-400), var(--color-amber-200))`
+
+Do not replace with flat Tailwind background classes — the gradient warmth is intentional.
