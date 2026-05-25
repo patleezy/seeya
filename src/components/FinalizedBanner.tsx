@@ -139,6 +139,11 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
     [responses]
   );
 
+  const nonDeclinedCount = useMemo(
+    () => responses.filter(r => !r.declined).length,
+    [responses]
+  );
+
   const slotsForExport = finalizedSlot ? [finalizedSlot] : bestSlots;
 
   if (finalizedSlot) {
@@ -176,7 +181,7 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
               className="gap-1.5 rounded-xl border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
             >
               <Mail className="h-3.5 w-3.5" />
-              Email invites ({emailCount})
+              Email invites ({emailCount < nonDeclinedCount ? `${emailCount} of ${nonDeclinedCount}` : emailCount})
             </Button>
           </a>
         )}
