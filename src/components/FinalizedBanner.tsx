@@ -29,6 +29,11 @@ function formatFinalizedSlot(slot: string, event: Event): string {
   return `${date} at ${displayH}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
+function googleMapsUrl(location: string): string {
+  if (location.startsWith('http')) return location;
+  return `https://maps.google.com/?q=${encodeURIComponent(location)}`;
+}
+
 function buildGcalUrl(slot: string, event: Event): string {
   let startStr: string;
   let endStr: string;
@@ -50,7 +55,7 @@ function buildGcalUrl(slot: string, event: Event): string {
     action: 'TEMPLATE',
     text: event.name,
     dates: `${startStr}/${endStr}`,
-    details: `Organized by ${event.creator_name}. Coordinated with Seeya: ${appUrl}/event/${event.id}`,
+    details: `Organized by ${event.creator_name}. Coordinated with Seeya: ${appUrl}/event/${event.id}${event.location ? `\n📍 ${googleMapsUrl(event.location)}` : ''}`,
     ...(event.location ? { location: event.location } : {}),
   });
   return `https://calendar.google.com/calendar/event?${params.toString()}`;

@@ -41,6 +41,16 @@ function toGoogleDate(date: Date, allDay: boolean): string {
   return format(date, "yyyyMMdd'T'HHmmss");
 }
 
+function appleMapsUrl(location: string): string {
+  if (location.startsWith('http')) return location;
+  return `https://maps.apple.com/?q=${encodeURIComponent(location)}`;
+}
+
+function googleMapsUrl(location: string): string {
+  if (location.startsWith('http')) return location;
+  return `https://maps.google.com/?q=${encodeURIComponent(location)}`;
+}
+
 function escapeIcs(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 }
@@ -77,7 +87,7 @@ function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
 
   const descriptionParts = [
     event.description,
-    event.location ? `📍 ${event.location}` : null,
+    event.location ? `📍 ${event.location}\n${appleMapsUrl(event.location)}` : null,
     `Organized by ${event.creator_name}`,
     `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean) as string[];
@@ -131,6 +141,7 @@ function googleCalendarUrl(event: Event, bestSlots: string[], responses: Respons
 
   const detailParts = [
     event.description,
+    event.location ? `📍 ${googleMapsUrl(event.location)}` : null,
     `Organized by ${event.creator_name}.`,
     `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean);

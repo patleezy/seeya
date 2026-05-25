@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EventMode, CreateEventRequest } from '@/types';
+import { LocationDisplay } from '@/components/LocationDisplay';
 import 'react-day-picker/style.css';
 
 const DURATION_PRESETS: { value: number; label: string }[] = [
@@ -97,6 +98,7 @@ export function CreateEventForm() {
   const watchCreatorName = watch('creator_name');
   const watchMode = watch('mode');
   const watchDates = watch('dates');
+  const watchLocation = watch('location');
 
   const showCreatorField = !!watchName?.trim();
   const showModeField = showCreatorField && !!watchCreatorName?.trim();
@@ -185,6 +187,11 @@ export function CreateEventForm() {
               className="rounded-2xl border-stone-200 dark:border-stone-700 focus-visible:ring-amber-400"
               autoComplete="off"
             />
+            {(watchLocation?.trim().length ?? 0) >= 3 && (
+              <div className="mt-1">
+                <LocationDisplay location={watchLocation!.trim()} />
+              </div>
+            )}
           </>
         )}
       </div>
