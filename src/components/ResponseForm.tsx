@@ -12,6 +12,7 @@ import { Event } from '@/types';
 
 interface Props {
   event: Event;
+  newDates?: string[];
 }
 
 interface StoredResponse {
@@ -23,7 +24,7 @@ function storageKey(eventId: string) {
   return `seeya_responded_${eventId}`;
 }
 
-export function ResponseForm({ event }: Props) {
+export function ResponseForm({ event, newDates }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -152,6 +153,7 @@ export function ResponseForm({ event }: Props) {
           event={event}
           selectedSlots={selectedSlots}
           onSlotsChange={setSelectedSlots}
+          newDates={newDates}
         />
       </div>
 

@@ -11,6 +11,7 @@ interface Props {
   totalResponders: number;
   bestSlots?: string[];
   responses?: Response[];
+  newDates?: string[];
 }
 
 function respondentColor(index: number, total: number): string {
@@ -23,7 +24,7 @@ const COUNT_THRESHOLD = 24; // show count badge up to this count; ≥25 → noth
 const LEGEND_MAX = 12;      // max legend chips before truncation
 const LEGEND_HIDE = 21;     // hide legend entirely at this count
 
-export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [] }: Props) {
+export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [], newDates = [] }: Props) {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
 
   const allSlots = buildSlotKeys(event);
@@ -67,6 +68,8 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
   const maxBestDensity = bestSlots.length > 0
     ? Math.max(...bestSlots.map(s => densityMap[s] ?? 0))
     : 0;
+
+  const newDateSet = new Set(newDates);
 
   const colCount = dates.length;
   const colMinWidth = isDayMode && event.trip_duration && event.trip_duration > 1 ? 80 : 56;
@@ -166,8 +169,16 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
             const density = densityMap[date] ?? 0;
             const isBest = bestSet.has(date) && density >= maxBestDensity && maxBestDensity > 0;
             const slotResponders = slotToResponders.get(date) ?? [];
+            const isNew = newDateSet.has(date);
             return (
               <div key={date} className="flex flex-col gap-1">
+                {isNew && (
+                  <div className="flex justify-center">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full px-1.5 py-0.5 leading-none">
+                      new
+                    </span>
+                  </div>
+                )}
                 <div className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 leading-tight">
                   <div>{line1}</div>
                   <div>{line2}</div>
@@ -196,8 +207,14 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
             <div />
             {dates.map(date => {
               const [line1, line2] = formatDateHeaderLines(date, null);
+              const isNew = newDateSet.has(date);
               return (
                 <div key={date} className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight">
+                  {isNew && (
+                    <span className="inline-block text-[9px] font-semibold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full px-1.5 py-0.5 leading-none mb-0.5">
+                      new
+                    </span>
+                  )}
                   <div>{line1}</div>
                   <div>{line2}</div>
                 </div>
