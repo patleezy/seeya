@@ -51,7 +51,7 @@ export function RespondentManager({ eventId, initialResponses, showNames }: Prop
   return (
     <div className="flex flex-wrap gap-1.5">
       {responses.map(r => (
-        <div key={r.id} className="flex items-center gap-0.5 group">
+        <div key={r.id} className="flex items-center gap-0.5">
           <span className="inline-flex items-center rounded-full bg-stone-100 dark:bg-stone-800 px-2.5 py-0.5 text-xs text-stone-600 dark:text-stone-400">
             {r.respondent_name}
             {r.declined && (
@@ -78,7 +78,7 @@ export function RespondentManager({ eventId, initialResponses, showNames }: Prop
             ) : (
               <button
                 onClick={() => setConfirming(r.id)}
-                className="text-stone-300 dark:text-stone-600 hover:text-red-400 dark:hover:text-red-400 transition-colors p-0.5 opacity-0 group-hover:opacity-100"
+                className="text-stone-400 dark:text-stone-500 hover:text-red-400 dark:hover:text-red-400 transition-colors p-0.5"
                 title={`Remove ${r.respondent_name}`}
               >
                 <Trash2 className="h-3 w-3" />
