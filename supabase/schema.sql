@@ -19,8 +19,10 @@ create table events (
   response_deadline timestamptz,
   anonymous         boolean not null default false,
   max_responses     int,
-  trip_duration     int,
-  created_at        timestamptz default now()
+  trip_duration          int,
+  dates_last_modified    timestamptz,
+  new_dates              text[] not null default '{}',
+  created_at             timestamptz default now()
 );
 
 create table responses (
@@ -62,3 +64,5 @@ create policy "public read recommendations" on ai_recommendations for select usi
 -- alter table responses add column if not exists comment text;
 -- alter table events add column if not exists trip_duration int;
 -- alter table responses add column if not exists declined boolean not null default false;
+-- alter table events add column if not exists dates_last_modified timestamptz;
+-- alter table events add column if not exists new_dates text[] not null default '{}';

@@ -10,9 +10,10 @@ interface Props {
   selectedSlots: Set<string>;
   onSlotsChange: (slots: Set<string>) => void;
   disabled?: boolean;
+  newDates?: string[];
 }
 
-export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled }: Props) {
+export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled, newDates = [] }: Props) {
   const allSlots = buildSlotKeys(event);
   const dates = [...event.dates].sort();
   const isDayMode = event.mode === 'days';
@@ -133,6 +134,8 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
     };
   }, []); // stable — all mutable state accessed via refs
 
+  const newDateSet = new Set(newDates);
+
   const colCount = dates.length;
   const colMinWidth = tripDuration && tripDuration > 1 ? 80 : 56;
 
@@ -156,11 +159,19 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
           {dates.map(date => {
             const [line1, line2] = formatDateHeaderLines(date, tripDuration);
             const isSelected = selectedSlots.has(date);
+            const isNew = newDateSet.has(date);
             return (
               <div
                 key={date}
                 className="flex flex-col gap-1"
               >
+                {isNew && (
+                  <div className="flex justify-center">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full px-1.5 py-0.5 leading-none">
+                      new
+                    </span>
+                  </div>
+                )}
                 <div className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 leading-tight">
                   <div>{line1}</div>
                   <div>{line2}</div>
@@ -202,11 +213,17 @@ export function AvailabilityGrid({ event, selectedSlots, onSlotsChange, disabled
               <div />
               {dates.map(date => {
                 const [line1, line2] = formatDateHeaderLines(date, null);
+                const isNew = newDateSet.has(date);
                 return (
                   <div
                     key={date}
                     className="text-center text-xs font-medium text-stone-500 dark:text-stone-400 pb-1 leading-tight"
                   >
+                    {isNew && (
+                      <span className="inline-block text-[9px] font-semibold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full px-1.5 py-0.5 leading-none mb-0.5">
+                        new
+                      </span>
+                    )}
                     <div>{line1}</div>
                     <div>{line2}</div>
                   </div>

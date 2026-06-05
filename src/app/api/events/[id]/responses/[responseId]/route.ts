@@ -2,12 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; responseId: string }> }
 ) {
   try {
     const { id, responseId } = await params;
+
+    let host_token: string | undefined;
+    try {
+      const body = await req.json();
+      host_token = body?.host_token;
+    } catch {
+      // No body is fine — respondent self-delete path
+    }
+
     const supabase = createSupabaseAdminClient();
+
+    // If host_token is supplied, validate it before allowing deletion of any response
+    if (host_token) {
+      const { data: event } = await supabase
+        .from('events')
+        .select('host_token')
+        .eq('id', id)
+        .single();
+
+      if (!event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      }
+
+      if (event.host_token !== host_token) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+    }
 
     const { data: response } = await supabase
       .from('responses')

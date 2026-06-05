@@ -9,6 +9,7 @@ import { HostTokenStore } from '@/components/HostTokenStore';
 import { ResultsAutoRefresh } from '@/components/ResultsAutoRefresh';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ResponseCTA } from '@/components/ResponseCTA';
+import { RespondentManager } from '@/components/RespondentManager';
 import { Badge } from '@/components/ui/badge';
 import { buildSlotKeys, buildDensityMap } from '@/lib/availability';
 import { Event, Response, AiRecommendation } from '@/types';
@@ -86,17 +87,12 @@ export default async function ResultsPage({ params, searchParams }: Props) {
               ? `${activeCount} responded · ${declinedCount} can't make it`
               : `${responses.length} ${responses.length === 1 ? 'person has' : 'people have'} responded`}
           </p>
-          {showNames && responses.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {responses.map(r => (
-                <span
-                  key={r.id}
-                  className="inline-flex items-center rounded-full bg-stone-100 dark:bg-stone-800 px-2.5 py-0.5 text-xs text-stone-600 dark:text-stone-400"
-                >
-                  {r.respondent_name}
-                </span>
-              ))}
-            </div>
+          {responses.length > 0 && (
+            <RespondentManager
+              eventId={id}
+              initialResponses={responses}
+              showNames={showNames}
+            />
           )}
         </div>
 
@@ -131,6 +127,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
             totalResponders={responses.length}
             bestSlots={bestSlots}
             responses={responses}
+            newDates={event.new_dates}
           />
         </div>
 

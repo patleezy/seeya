@@ -21,6 +21,8 @@ export interface Event {
   anonymous: boolean;
   max_responses: number | null;
   trip_duration: number | null;
+  dates_last_modified: string | null;
+  new_dates: string[];
   created_at: string;
 }
 

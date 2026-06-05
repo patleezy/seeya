@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { Event } from '@/types';
 import { LocationDisplay } from '@/components/LocationDisplay';
+import { EditEventModal } from '@/components/EditEventModal';
 import type { Metadata } from 'next';
 
 interface Props {
@@ -117,9 +118,12 @@ export default async function EventPage({ params, searchParams }: Props) {
               </Badge>
             )}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-            {e.name}
-          </h1>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
+              {e.name}
+            </h1>
+            <EditEventModal event={e} />
+          </div>
           {e.location && <LocationDisplay location={e.location} />}
           {e.description && (
             <p className="text-sm text-stone-500 dark:text-stone-400">{e.description}</p>
@@ -169,11 +173,20 @@ export default async function EventPage({ params, searchParams }: Props) {
           </div>
         )}
 
+        {/* Dates-updated notice */}
+        {e.dates_last_modified && e.new_dates.length > 0 && (
+          <div className="rounded-2xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30 p-4">
+            <p className="text-sm font-medium text-sky-800 dark:text-sky-300">
+              🗓 New date options were added — look for the <span className="font-semibold">new</span> badge and update your picks if needed.
+            </p>
+          </div>
+        )}
+
         {/* Response form */}
         {!responsesClosed && (
           <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-[var(--bg-card)] p-6 space-y-4">
             <h2 className="text-base font-medium text-stone-900 dark:text-stone-50">Add your availability</h2>
-            <ResponseForm event={e} />
+            <ResponseForm event={e} newDates={e.new_dates} />
           </div>
         )}
 
