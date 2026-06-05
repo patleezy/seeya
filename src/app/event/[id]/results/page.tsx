@@ -10,6 +10,7 @@ import { ResultsAutoRefresh } from '@/components/ResultsAutoRefresh';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ResponseCTA } from '@/components/ResponseCTA';
 import { RespondentManager } from '@/components/RespondentManager';
+import { EditEventModal } from '@/components/EditEventModal';
 import { Badge } from '@/components/ui/badge';
 import { buildSlotKeys, buildDensityMap } from '@/lib/availability';
 import { Event, Response, AiRecommendation } from '@/types';
@@ -69,9 +70,12 @@ export default async function ResultsPage({ params, searchParams }: Props) {
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline">by {event.creator_name}</Badge>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
-            {event.name}
-          </h1>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
+              {event.name}
+            </h1>
+            <EditEventModal event={event} />
+          </div>
           {event.location && <LocationDisplay location={event.location} />}
           {event.description && (
             <p className="text-sm text-stone-500 dark:text-stone-400">{event.description}</p>
