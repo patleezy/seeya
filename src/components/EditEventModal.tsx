@@ -97,7 +97,7 @@ export function EditEventModal({ event }: Props) {
         title="Edit event"
       >
         <Pencil className="h-3 w-3" />
-        Edit
+        Edit event
       </button>
 
       {open && (
