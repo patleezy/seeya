@@ -78,6 +78,9 @@ export default async function EventPage({ params, searchParams }: Props) {
   if (error || !event) notFound();
 
   const e = event as Event;
+  // Never ship the host_token to the browser for non-host visitors — EditEventModal
+  // only relies on sessionStorage for its own host check, not this prop.
+  const publicEvent = { ...e, host_token: '' };
   const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const appUrl = rawAppUrl.startsWith('http') ? rawAppUrl : `https://${rawAppUrl}`;
   const shareUrl = `${appUrl}/event/${id}`;
@@ -122,7 +125,7 @@ export default async function EventPage({ params, searchParams }: Props) {
             <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
               {e.name}
             </h1>
-            <EditEventModal event={e} />
+            <EditEventModal event={publicEvent} />
           </div>
           {e.location && <LocationDisplay location={e.location} />}
           {e.description && (

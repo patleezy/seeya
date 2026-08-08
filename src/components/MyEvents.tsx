@@ -77,7 +77,7 @@ export function MyEvents() {
             </div>
 
             <Link
-              href={`/event/${ev.id}`}
+              href={`/event/${ev.id}?t=${ev.host_token}`}
               className="shrink-0 flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors"
             >
               View <ExternalLink className="h-3 w-3" />

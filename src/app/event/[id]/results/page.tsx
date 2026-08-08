@@ -46,6 +46,9 @@ export default async function ResultsPage({ params, searchParams }: Props) {
   const activeCount = responses.length - declinedCount;
 
   const showNames = !event.anonymous;
+  // Never ship the host_token to the browser for non-host visitors — EditEventModal
+  // only relies on sessionStorage for its own host check, not this prop.
+  const publicEvent = { ...event, host_token: '' };
 
   return (
     <div className="min-h-screen bg-[var(--bg-outer)]">
@@ -74,7 +77,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
             <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
               {event.name}
             </h1>
-            <EditEventModal event={event} />
+            <EditEventModal event={publicEvent} />
           </div>
           {event.location && <LocationDisplay location={event.location} />}
           {event.description && (
