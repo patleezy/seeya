@@ -23,6 +23,7 @@ const DOTS_THRESHOLD = 8;   // show individual dots up to this count
 const COUNT_THRESHOLD = 24; // show count badge up to this count; ≥25 → nothing
 const LEGEND_MAX = 12;      // max legend chips before truncation
 const LEGEND_HIDE = 21;     // hide legend entirely at this count
+const TOOLTIP_MAX = 5;      // max names shown in the per-slot hover tooltip before truncation
 
 export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [], newDates = [] }: Props) {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
@@ -114,12 +115,15 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
     return (
       <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
         <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-          {slotResponders.map((name, ni) => (
+          {slotResponders.slice(0, TOOLTIP_MAX).map((name, ni) => (
             <div key={ni} className="flex items-center gap-1.5">
               <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
               {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
             </div>
           ))}
+          {slotResponders.length > TOOLTIP_MAX && (
+            <div className="opacity-70">+{slotResponders.length - TOOLTIP_MAX} more</div>
+          )}
           <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
             {density}/{totalResponders} free
           </div>
