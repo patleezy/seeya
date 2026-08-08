@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { Event, Response, SlotDensityMap } from '@/types';
 import { buildSlotKeys, formatSlotLabel, formatDateHeaderLines } from '@/lib/availability';
 import { cn } from '@/lib/utils';
@@ -25,8 +25,27 @@ const LEGEND_MAX = 12;      // max legend chips before truncation
 const LEGEND_HIDE = 21;     // hide legend entirely at this count
 const TOOLTIP_MAX = 5;      // max names shown in the per-slot hover tooltip before truncation
 
+interface HoveredTooltip {
+  slot: string;
+  openBelow: boolean;
+  align: 'left' | 'center' | 'right';
+}
+
+const TOOLTIP_EST_HEIGHT = 160; // rough px height of a full 5-name tooltip, for flip detection
+const TOOLTIP_EDGE_MARGIN = 90; // px from screen edge before flipping horizontal alignment
+
 export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [], newDates = [] }: Props) {
-  const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<HoveredTooltip | null>(null);
+
+  function handleEnter(e: MouseEvent<HTMLDivElement>, slot: string) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const openBelow = rect.top < TOOLTIP_EST_HEIGHT;
+    const align: HoveredTooltip['align'] =
+      rect.left < TOOLTIP_EDGE_MARGIN ? 'left'
+      : window.innerWidth - rect.right < TOOLTIP_EDGE_MARGIN ? 'right'
+      : 'center';
+    setHovered({ slot, openBelow, align });
+  }
 
   const allSlots = buildSlotKeys(event);
   const dates = [...event.dates].sort();
@@ -111,24 +130,50 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
   }
 
   function renderTooltip(slot: string, slotResponders: string[], density: number) {
-    if (hoveredSlot !== slot || slotResponders.length === 0) return null;
-    return (
-      <div className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-1.5 pointer-events-none">
-        <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-          {slotResponders.slice(0, TOOLTIP_MAX).map((name, ni) => (
-            <div key={ni} className="flex items-center gap-1.5">
-              <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
-              {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
-            </div>
-          ))}
-          {slotResponders.length > TOOLTIP_MAX && (
-            <div className="opacity-70">+{slotResponders.length - TOOLTIP_MAX} more</div>
-          )}
-          <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
-            {density}/{totalResponders} free
+    if (hovered?.slot !== slot || slotResponders.length === 0) return null;
+    const { openBelow, align } = hovered;
+
+    const box = (
+      <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-xl px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+        {slotResponders.slice(0, TOOLTIP_MAX).map((name, ni) => (
+          <div key={ni} className="flex items-center gap-1.5">
+            <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
+            {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
           </div>
+        ))}
+        {slotResponders.length > TOOLTIP_MAX && (
+          <div className="opacity-70">+{slotResponders.length - TOOLTIP_MAX} more</div>
+        )}
+        <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
+          {density}/{totalResponders} free
         </div>
-        <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -mt-1" />
+      </div>
+    );
+    const pointer = align === 'center' && (
+      <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -my-1" />
+    );
+
+    return (
+      <div
+        className={cn(
+          'absolute z-20 pointer-events-none',
+          openBelow ? 'top-full mt-1.5' : 'bottom-full mb-1.5',
+          align === 'center' && 'left-1/2 -translate-x-1/2',
+          align === 'left' && 'left-0',
+          align === 'right' && 'right-0'
+        )}
+      >
+        {openBelow ? (
+          <>
+            {pointer}
+            {box}
+          </>
+        ) : (
+          <>
+            {box}
+            {pointer}
+          </>
+        )}
       </div>
     );
   }
@@ -190,8 +235,8 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                 <div
                   className={cn('relative h-12 rounded-sm transition-colors', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
                   style={{ background: cellBg(density) }}
-                  onMouseEnter={() => setHoveredSlot(date)}
-                  onMouseLeave={() => setHoveredSlot(null)}
+                  onMouseEnter={e => handleEnter(e, date)}
+                  onMouseLeave={() => setHovered(null)}
                 >
                   {renderCellOverlay(slotResponders, 10)}
                   {renderTooltip(date, slotResponders, density)}
@@ -245,8 +290,8 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                     key={colIdx}
                     className={cn('relative rounded-sm h-7 transition-colors', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
                     style={{ background: cellBg(density) }}
-                    onMouseEnter={() => setHoveredSlot(slot)}
-                    onMouseLeave={() => setHoveredSlot(null)}
+                    onMouseEnter={e => handleEnter(e, slot)}
+                    onMouseLeave={() => setHovered(null)}
                   >
                     {renderCellOverlay(slotResponders, 7)}
                     {renderTooltip(slot, slotResponders, density)}
