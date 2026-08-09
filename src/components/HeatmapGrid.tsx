@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type MouseEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Event, Response, SlotDensityMap } from '@/types';
 import { buildSlotKeys, formatSlotLabel, formatDateHeaderLines } from '@/lib/availability';
 import { cn } from '@/lib/utils';
@@ -27,24 +28,68 @@ const TOOLTIP_MAX = 5;      // max names shown in the per-slot hover tooltip bef
 
 interface HoveredTooltip {
   slot: string;
-  openBelow: boolean;
-  align: 'left' | 'center' | 'right';
+  anchorRect: DOMRect;
 }
 
-const TOOLTIP_EST_HEIGHT = 160; // rough px height of a full 5-name tooltip, for flip detection
-const TOOLTIP_EDGE_MARGIN = 90; // px from screen edge before flipping horizontal alignment
+const TOOLTIP_MARGIN = 6;          // gap between the tooltip and its anchor cell, px
+const TOOLTIP_SCREEN_PADDING = 8;  // min distance the tooltip keeps from the screen edge, px
+
+// Renders via a portal with `position: fixed`, so it can't be clipped by any scrollable/overflow
+// ancestor (e.g. the grid's own `overflow-x-auto` wrapper) — only the real viewport matters here.
+// Position is computed from the tooltip's own measured size in a `useLayoutEffect`, so it's exact
+// (no more guessing a fixed height) and resolves before paint, avoiding a visible jump.
+function HeatmapTooltip({ anchorRect, children }: { anchorRect: DOMRect; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; pointerLeft: number | null; openBelow: boolean } | null>(null);
+
+  useLayoutEffect(() => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const openBelow = anchorRect.top - rect.height - TOOLTIP_MARGIN < 0;
+    const top = openBelow ? anchorRect.bottom + TOOLTIP_MARGIN : anchorRect.top - rect.height - TOOLTIP_MARGIN;
+
+    const idealLeft = anchorRect.left + anchorRect.width / 2 - rect.width / 2;
+    const maxLeft = window.innerWidth - rect.width - TOOLTIP_SCREEN_PADDING;
+    const left = Math.min(Math.max(idealLeft, TOOLTIP_SCREEN_PADDING), Math.max(maxLeft, TOOLTIP_SCREEN_PADDING));
+
+    const anchorCenterX = anchorRect.left + anchorRect.width / 2;
+    const pointerLeft = anchorCenterX - left;
+    const pointerVisible = pointerLeft > 8 && pointerLeft < rect.width - 8;
+
+    setPos({ top, left, pointerLeft: pointerVisible ? pointerLeft : null, openBelow });
+  }, [anchorRect]);
+
+  const box = (
+    <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-xl px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+      {children}
+    </div>
+  );
+  const pointer = pos?.pointerLeft != null && (
+    <div
+      className="absolute w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45"
+      style={{ left: pos.pointerLeft, top: pos.openBelow ? -4 : undefined, bottom: pos.openBelow ? undefined : -4, transform: 'translateX(-50%) rotate(45deg)' }}
+    />
+  );
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-50 pointer-events-none"
+      style={{ top: pos?.top ?? 0, left: pos?.left ?? 0, opacity: pos ? 1 : 0 }}
+    >
+      {box}
+      {pointer}
+    </div>,
+    document.body
+  );
+}
 
 export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [], newDates = [] }: Props) {
   const [hovered, setHovered] = useState<HoveredTooltip | null>(null);
 
   function handleEnter(e: MouseEvent<HTMLDivElement>, slot: string) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const openBelow = rect.top < TOOLTIP_EST_HEIGHT;
-    const align: HoveredTooltip['align'] =
-      rect.left < TOOLTIP_EDGE_MARGIN ? 'left'
-      : window.innerWidth - rect.right < TOOLTIP_EDGE_MARGIN ? 'right'
-      : 'center';
-    setHovered({ slot, openBelow, align });
+    setHovered({ slot, anchorRect: e.currentTarget.getBoundingClientRect() });
   }
 
   const allSlots = buildSlotKeys(event);
@@ -131,10 +176,8 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
 
   function renderTooltip(slot: string, slotResponders: string[], density: number) {
     if (hovered?.slot !== slot || slotResponders.length === 0) return null;
-    const { openBelow, align } = hovered;
-
-    const box = (
-      <div className="bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs rounded-xl px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+    return (
+      <HeatmapTooltip anchorRect={hovered.anchorRect}>
         {slotResponders.slice(0, TOOLTIP_MAX).map((name, ni) => (
           <div key={ni} className="flex items-center gap-1.5">
             <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
@@ -147,34 +190,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
         <div className="text-[10px] opacity-60 mt-0.5 border-t border-white/20 dark:border-stone-900/20 pt-0.5">
           {density}/{totalResponders} free
         </div>
-      </div>
-    );
-    const pointer = align === 'center' && (
-      <div className="w-2 h-2 bg-stone-900 dark:bg-stone-100 rotate-45 mx-auto -my-1" />
-    );
-
-    return (
-      <div
-        className={cn(
-          'absolute z-20 pointer-events-none',
-          openBelow ? 'top-full mt-1.5' : 'bottom-full mb-1.5',
-          align === 'center' && 'left-1/2 -translate-x-1/2',
-          align === 'left' && 'left-0',
-          align === 'right' && 'right-0'
-        )}
-      >
-        {openBelow ? (
-          <>
-            {pointer}
-            {box}
-          </>
-        ) : (
-          <>
-            {box}
-            {pointer}
-          </>
-        )}
-      </div>
+      </HeatmapTooltip>
     );
   }
 
