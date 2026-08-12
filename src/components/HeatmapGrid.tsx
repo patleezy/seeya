@@ -2,9 +2,11 @@
 
 import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { format, parseISO } from 'date-fns';
 import { Event, Response, SlotDensityMap } from '@/types';
 import { buildSlotKeys, formatSlotLabel, formatDateHeaderLines } from '@/lib/availability';
 import { cn } from '@/lib/utils';
+import { RsvpListModal } from '@/components/RsvpListModal';
 
 interface Props {
   event: Event;
@@ -33,6 +35,16 @@ interface HoveredTooltip {
 
 const TOOLTIP_MARGIN = 6;          // gap between the tooltip and its anchor cell, px
 const TOOLTIP_SCREEN_PADDING = 8;  // min distance the tooltip keeps from the screen edge, px
+
+function formatModalTitle(slot: string, event: Event): string {
+  if (event.mode === 'days') {
+    const [line1, line2] = formatDateHeaderLines(slot, event.trip_duration);
+    return line2.startsWith('–') ? `${line1}${line2}` : format(parseISO(slot), 'EEEE, MMMM d');
+  }
+  const dateLabel = format(parseISO(slot.slice(0, 10)), 'EEEE, MMMM d');
+  const timeLabel = formatSlotLabel(slot, 'times');
+  return `${dateLabel} · ${timeLabel}`;
+}
 
 // Renders via a portal with `position: fixed`, so it can't be clipped by any scrollable/overflow
 // ancestor (e.g. the grid's own `overflow-x-auto` wrapper) — only the real viewport matters here.
@@ -87,9 +99,15 @@ function HeatmapTooltip({ anchorRect, children }: { anchorRect: DOMRect; childre
 
 export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [], newDates = [] }: Props) {
   const [hovered, setHovered] = useState<HoveredTooltip | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
   function handleEnter(e: MouseEvent<HTMLDivElement>, slot: string) {
     setHovered({ slot, anchorRect: e.currentTarget.getBoundingClientRect() });
+  }
+
+  function handleSelect(slot: string) {
+    setHovered(null);
+    setSelectedSlot(slot);
   }
 
   const allSlots = buildSlotKeys(event);
@@ -249,10 +267,11 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                   <div>{line2}</div>
                 </div>
                 <div
-                  className={cn('relative h-12 rounded-sm transition-colors', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
+                  className={cn('relative h-12 rounded-sm transition-colors cursor-pointer', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
                   style={{ background: cellBg(density) }}
                   onMouseEnter={e => handleEnter(e, date)}
                   onMouseLeave={() => setHovered(null)}
+                  onClick={() => handleSelect(date)}
                 >
                   {renderCellOverlay(slotResponders, 10)}
                   {renderTooltip(date, slotResponders, density)}
@@ -304,10 +323,11 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
                 return (
                   <div
                     key={colIdx}
-                    className={cn('relative rounded-sm h-7 transition-colors', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
+                    className={cn('relative rounded-sm h-7 transition-colors cursor-pointer', isBest && 'animate-[bestSlotPulse_2s_ease-in-out_infinite]')}
                     style={{ background: cellBg(density) }}
                     onMouseEnter={e => handleEnter(e, slot)}
                     onMouseLeave={() => setHovered(null)}
+                    onClick={() => handleSelect(slot)}
                   >
                     {renderCellOverlay(slotResponders, 7)}
                     {renderTooltip(slot, slotResponders, density)}
@@ -318,6 +338,28 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
           ))}
         </>
       )}
+
+      {selectedSlot && (() => {
+        const available = slotToResponders.get(selectedSlot) ?? [];
+        const availableSet = new Set(available);
+        const notAvailable = responses
+          .filter(r => !r.declined && !availableSet.has(r.respondent_name))
+          .map(r => r.respondent_name);
+        const declinedNames = responses.filter(r => r.declined).map(r => r.respondent_name);
+        return (
+          <RsvpListModal
+            open
+            onClose={() => setSelectedSlot(null)}
+            title={formatModalTitle(selectedSlot, event)}
+            available={available}
+            notAvailable={notAvailable}
+            declined={declinedNames}
+            isAnonymous={isAnonymous}
+            colorFor={name => respondentColorMap.get(name) ?? null}
+            guestNumberFor={name => responses.findIndex(r => r.respondent_name === name) + 1}
+          />
+        );
+      })()}
     </div>
   );
 }

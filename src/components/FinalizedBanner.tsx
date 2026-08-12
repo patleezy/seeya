@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Event, Response, SlotDensityMap } from '@/types';
 import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
+import { EmailInvitesModal } from '@/components/EmailInvitesModal';
 import { CheckCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAppUrl } from '@/lib/utils';
@@ -109,20 +110,21 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
     }
   }
 
-  const mailtoUrl = useMemo(() => {
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+
+  const emailInvite = useMemo(() => {
     if (!finalizedSlot) return null;
     const emailList = responses.filter(r => r.email && !r.declined).map(r => r.email as string);
     if (emailList.length === 0) return null;
 
     const appUrl = getAppUrl();
-    const eventUrl = `${appUrl}/event/${event.id}`;
     const formattedDate = formatFinalizedSlot(finalizedSlot, event);
     const tzSuffix = event.timezone ? ` (${fmtTz(event.timezone)})` : '';
     const subject = `You're invited: ${event.name} — ${formattedDate}${tzSuffix}`;
 
     const gcalUrl = buildGcalUrl(finalizedSlot, event);
 
-    const bodyLines = [
+    const body = [
       `Hi there,`,
       ``,
       `${event.name} is set for ${formattedDate}${tzSuffix}.`,
@@ -136,7 +138,9 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
       `— ${event.creator_name} · ${getAppUrl()}`,
     ].filter(s => s !== null).join('\r\n');
 
-    return `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines)}`;
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    return { emailList, subject, body, mailtoUrl };
   }, [finalizedSlot, responses, event]);
 
   const emailCount = useMemo(
@@ -178,17 +182,26 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
           )}
         </div>
         <CalendarExport event={{ ...event, finalized_slot: finalizedSlot }} bestSlots={slotsForExport} responses={responses} />
-        {isHost && mailtoUrl && (
-          <a href={mailtoUrl}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 rounded-xl border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              Email invites ({emailCount < nonDeclinedCount ? `${emailCount} of ${nonDeclinedCount}` : emailCount})
-            </Button>
-          </a>
+        {isHost && emailInvite && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 rounded-xl border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
+            onClick={() => setEmailModalOpen(true)}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Email invites ({emailCount < nonDeclinedCount ? `${emailCount} of ${nonDeclinedCount}` : emailCount})
+          </Button>
+        )}
+        {emailInvite && (
+          <EmailInvitesModal
+            open={emailModalOpen}
+            onClose={() => setEmailModalOpen(false)}
+            recipients={emailInvite.emailList}
+            subject={emailInvite.subject}
+            body={emailInvite.body}
+            mailtoUrl={emailInvite.mailtoUrl}
+          />
         )}
       </div>
     );
