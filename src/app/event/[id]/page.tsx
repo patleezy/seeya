@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { toPublicEvent } from '@/lib/sanitize';
 import { ResponseForm } from '@/components/ResponseForm';
 import { ShareLinkBox } from '@/components/ShareLinkBox';
 import { HostTokenStore } from '@/components/HostTokenStore';
@@ -20,7 +21,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: event } = await supabase.from('events').select('name, creator_name').eq('id', id).single();
 
   if (!event) return {};
@@ -68,7 +69,7 @@ export default async function EventPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { created } = await searchParams;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: event, error } = await supabase
     .from('events')
     .select('*')
@@ -77,10 +78,8 @@ export default async function EventPage({ params, searchParams }: Props) {
 
   if (error || !event) notFound();
 
-  const e = event as Event;
-  // Never ship the host_token to the browser for non-host visitors — EditEventModal
-  // only relies on sessionStorage for its own host check, not this prop.
-  const publicEvent = { ...e, host_token: '' };
+  // Server-only read; strip host_token before anything reaches a client component
+  const e = toPublicEvent(event as Event);
   const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const appUrl = rawAppUrl.startsWith('http') ? rawAppUrl : `https://${rawAppUrl}`;
   const shareUrl = `${appUrl}/event/${id}`;
@@ -125,7 +124,7 @@ export default async function EventPage({ params, searchParams }: Props) {
             <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
               {e.name}
             </h1>
-            <EditEventModal event={publicEvent} />
+            <EditEventModal event={e} />
           </div>
           {e.location && <LocationDisplay location={e.location} />}
           {e.description && (

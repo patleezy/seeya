@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { toPublicEvent, toPublicResponses } from '@/lib/sanitize';
+import { HostResponsesProvider } from '@/components/HostResponsesProvider';
+import { ResponseComments } from '@/components/ResponseComments';
 import { HeatmapGrid } from '@/components/HeatmapGrid';
 import { AiRecommendationCard } from '@/components/AiRecommendationCard';
 import { FinalizedBanner } from '@/components/FinalizedBanner';
@@ -24,7 +27,8 @@ interface Props {
 export default async function ResultsPage({ params, searchParams }: Props) {
   const { id } = await params;
   await searchParams; // consume to avoid Next.js warning; token handling is client-side
-  const supabase = await createSupabaseServerClient();
+  // Server-only read; everything below is sanitized before reaching client components
+  const supabase = createSupabaseAdminClient();
 
   const [eventResult, responsesResult, recommendationResult] = await Promise.all([
     supabase.from('events').select('*').eq('id', id).single(),
@@ -34,8 +38,8 @@ export default async function ResultsPage({ params, searchParams }: Props) {
 
   if (eventResult.error || !eventResult.data) notFound();
 
-  const event = eventResult.data as Event;
-  const responses = (responsesResult.data ?? []) as Response[];
+  const event = toPublicEvent(eventResult.data as Event);
+  const responses = toPublicResponses((responsesResult.data ?? []) as Response[], event.anonymous);
   const recommendation = (recommendationResult.data ?? null) as AiRecommendation | null;
 
   const allSlotKeys = buildSlotKeys(event);
@@ -46,9 +50,6 @@ export default async function ResultsPage({ params, searchParams }: Props) {
   const activeCount = responses.length - declinedCount;
 
   const showNames = !event.anonymous;
-  // Never ship the host_token to the browser for non-host visitors — EditEventModal
-  // only relies on sessionStorage for its own host check, not this prop.
-  const publicEvent = { ...event, host_token: '' };
 
   return (
     <div className="min-h-screen bg-[var(--bg-outer)]">
@@ -67,6 +68,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         <ThemeToggle />
       </header>
 
+      <HostResponsesProvider eventId={id} publicResponses={responses}>
       <main className="mx-auto max-w-lg px-6 py-8 space-y-6">
         {/* Event header */}
         <div className="space-y-1">
@@ -77,7 +79,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
             <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-50">
               {event.name}
             </h1>
-            <EditEventModal event={publicEvent} />
+            <EditEventModal event={event} />
           </div>
           {event.location && <LocationDisplay location={event.location} />}
           {event.description && (
@@ -95,28 +97,15 @@ export default async function ResultsPage({ params, searchParams }: Props) {
               : `${responses.length} ${responses.length === 1 ? 'person has' : 'people have'} responded`}
           </p>
           {responses.length > 0 && (
-            <RespondentManager
-              eventId={id}
-              initialResponses={responses}
-              showNames={showNames}
-            />
+            <RespondentManager eventId={id} showNames={showNames} />
           )}
         </div>
 
         {/* Comments from respondents */}
-        {responses.some(r => r.comment) && (
-          <div className="space-y-2">
-            {responses.filter(r => r.comment).map(r => (
-              <div key={r.id} className="text-sm text-stone-500 dark:text-stone-400">
-                <span className="font-medium text-stone-700 dark:text-stone-300">{r.respondent_name}:</span>{' '}
-                {r.comment}
-              </div>
-            ))}
-          </div>
-        )}
+        <ResponseComments />
 
         {/* Finalized banner OR finalize button (client component handles both) */}
-        <FinalizedBanner event={event} bestSlots={bestSlots} allSlotKeys={allSlotKeys} densityMap={densityMap} totalResponders={responses.length} responses={responses} />
+        <FinalizedBanner event={event} bestSlots={bestSlots} allSlotKeys={allSlotKeys} densityMap={densityMap} totalResponders={responses.length} />
 
         {/* AI Recommendation — host only (component handles the check internally) */}
         <AiRecommendationCard
@@ -133,7 +122,6 @@ export default async function ResultsPage({ params, searchParams }: Props) {
             densityMap={densityMap}
             totalResponders={responses.length}
             bestSlots={bestSlots}
-            responses={responses}
             newDates={event.new_dates}
           />
         </div>
@@ -141,6 +129,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         {/* Actions */}
         <ResponseCTA eventId={id} />
       </main>
+      </HostResponsesProvider>
     </div>
   );
 }

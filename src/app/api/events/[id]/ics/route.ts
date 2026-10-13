@@ -75,13 +75,6 @@ export async function GET(
     return NextResponse.json({ error: 'Event has not been finalized' }, { status: 404 });
   }
 
-  // Fetch responses that have emails for ATTENDEE lines
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('respondent_name, email')
-    .eq('event_id', id)
-    .not('email', 'is', null);
-
   const range = getStartEnd(event as Event, event.finalized_slot);
   if (!range) {
     return NextResponse.json({ error: 'Could not determine event time range' }, { status: 500 });
@@ -107,14 +100,8 @@ export async function GET(
     `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean) as string[];
 
-  // Join with actual newline so escapeIcs can correctly escape it to \n (the ICS sequence)
-  const attendeeLines = (responses ?? [])
-    .filter((r: { respondent_name: string; email: string | null }) => r.email)
-    .map((r: { respondent_name: string; email: string | null }) =>
-      foldLine(
-        `ATTENDEE;CN=${escapeIcs(r.respondent_name)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${r.email}`
-      )
-    );
+  // No ATTENDEE lines: this URL is public (shared in invite emails), so it must
+  // never expose other respondents' names or email addresses.
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -128,10 +115,10 @@ export async function GET(
     dtStart,
     dtEnd,
     foldLine(`SUMMARY:${escapeIcs(event.name)}`),
+    // Join with actual newline so escapeIcs can correctly escape it to \n (the ICS sequence)
     descriptionParts.length ? foldLine(`DESCRIPTION:${escapeIcs(descriptionParts.join('\n'))}`) : '',
     event.location ? foldLine(`LOCATION:${escapeIcs(event.location)}`) : '',
     foldLine(`URL:${eventUrl}`),
-    ...attendeeLines,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean).join('\r\n');

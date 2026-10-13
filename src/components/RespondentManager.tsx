@@ -3,28 +3,25 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2 } from 'lucide-react';
-import { Response } from '@/types';
+import { useEventResponses } from '@/components/HostResponsesProvider';
 
 interface Props {
   eventId: string;
-  initialResponses: Response[];
   showNames: boolean;
 }
 
-export function RespondentManager({ eventId, initialResponses, showNames }: Props) {
+export function RespondentManager({ eventId, showNames }: Props) {
   const router = useRouter();
-  const [isHost, setIsHost] = useState(false);
+  const { responses: allResponses, isHost } = useEventResponses();
   const [hostToken, setHostToken] = useState<string | null>(null);
-  const [responses, setResponses] = useState(initialResponses);
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const responses = allResponses.filter(r => !removed.has(r.id));
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     const token = sessionStorage.getItem(`host_token_${eventId}`);
-    if (token) {
-      setIsHost(true);
-      setHostToken(token);
-    }
+    if (token) setHostToken(token);
   }, [eventId]);
 
   if (!showNames && !isHost) return null;
@@ -39,7 +36,7 @@ export function RespondentManager({ eventId, initialResponses, showNames }: Prop
         body: JSON.stringify({ host_token: hostToken }),
       });
       if (res.ok) {
-        setResponses(prev => prev.filter(r => r.id !== responseId));
+        setRemoved(prev => new Set(prev).add(responseId));
         setConfirming(null);
         router.refresh();
       }

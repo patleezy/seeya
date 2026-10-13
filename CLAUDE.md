@@ -11,7 +11,7 @@ A scheduling coordination app. Users create events, share a link, participants d
 - **Next.js 16** App Router — uses the newer `params: Promise<{...}>` pattern for page/route params (must `await params`)
 - **Tailwind CSS v4** — CSS-first config in `src/app/globals.css` using `@theme {}`. No `tailwind.config.ts`. Custom keyframes and dark mode variant defined in CSS.
 - **Dark mode** — class-based via `next-themes`. The `@variant dark` rule in globals.css makes `dark:` Tailwind classes work.
-- **Supabase** — Postgres backend. `createSupabaseAdminClient()` for API routes (service role, bypasses RLS). `createSupabaseServerClient()` for RSC reads (anon key, respects RLS).
+- **Supabase** — Postgres backend. `createSupabaseAdminClient()` is the only client (service role, server-only). RLS is enabled with **no policies**, so the anon key can read nothing.
 - **Gemini 2.5 Flash** — used only when the algorithm can't find a clear winner. See `src/lib/gemini.ts`.
 
 ## Key conventions
@@ -20,6 +20,8 @@ A scheduling coordination app. Users create events, share a link, participants d
 - All slot math lives in `src/lib/availability.ts` — `buildSlotKeys`, `buildDensityMap`, `findBestSlots`, `formatDateHeaderLines`. Keep this file pure (no DB, no API calls).
 - AI recommendations are cached in the `ai_recommendations` table and invalidated automatically when a new response is submitted.
 - No auth — events are public by UUID slug. Service role key must never be used client-side.
+- **Privacy boundary:** anything passed to a client component or returned from a public API route must go through `toPublicEvent` / `toPublicResponses` in `src/lib/sanitize.ts` (strips `host_token` and `email`; replaces names with "Guest N" on anonymous events). Never pass raw DB rows as props — props are serialized into the page.
+- Host-only data (real names + emails) comes from `POST /api/events/[id]/host-view` with the host token, exposed to components via `useEventResponses()` from `HostResponsesProvider.tsx`.
 
 ## Environment variables required
 
@@ -92,7 +94,7 @@ Use `repeat(auto-fill, minmax(68px, 1fr))` for both `AvailabilityGrid` and `Heat
 
 ### Respondent color coding
 
-`HeatmapGrid` accepts a `responses: Response[]` prop and builds a `slotToResponders` map internally. Colors are generated as `hsl((i * 360 / n) % 360, 65%, 55%)` for N respondents — evenly spaced hues. Anonymous mode replaces names with "Guest 1", "Guest 2", etc. in tooltips and the legend.
+`HeatmapGrid` reads responses from `useEventResponses()` and builds a `slotToResponders` map internally. Colors are generated as `hsl((i * 360 / n) % 360, 65%, 55%)` for N respondents — evenly spaced hues. Anonymous mode: names are replaced with "Guest 1", "Guest 2", etc. **server-side** for guests (comments included); the host sees real names.
 
 ### Decline flow
 
@@ -104,7 +106,7 @@ Respondents can submit with `declined: true` and an empty `availability: []` ("N
 
 ### Direct ICS endpoint
 
-`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invite bodies as the Apple Calendar link.
+`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invite bodies as the Apple Calendar link. Contains no ATTENDEE lines — the URL is public, so it must not expose respondent emails.
 
 ### Duration preset chips
 
