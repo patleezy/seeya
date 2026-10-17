@@ -129,7 +129,9 @@ export function ResponseForm({ event, newDates }: Props) {
         />
         <p className="text-xs text-stone-400 dark:text-stone-500 flex items-center gap-1">
           <Info className="h-3 w-3 flex-shrink-0" />
-          Receive a calendar invite when the event is finalized. Your email is only used for event planning and never sold to third parties.
+          {event.anonymous
+            ? 'Receive a calendar invite when the event is finalized. Only the organizer sees your email. Never sold to third parties.'
+            : 'Receive a calendar invite when the event is finalized. Your name and email are visible to everyone with the event link. Never sold to third parties.'}
         </p>
       </div>
 

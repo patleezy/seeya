@@ -1,8 +1,9 @@
 'use client';
 
+import { useEventResponses } from '@/components/HostResponsesProvider';
 import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Event, Response, SlotDensityMap } from '@/types';
+import { Event, SlotDensityMap } from '@/types';
 import { buildSlotKeys, formatSlotLabel, formatDateHeaderLines } from '@/lib/availability';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +12,6 @@ interface Props {
   densityMap: SlotDensityMap;
   totalResponders: number;
   bestSlots?: string[];
-  responses?: Response[];
   newDates?: string[];
 }
 
@@ -85,7 +85,10 @@ function HeatmapTooltip({ anchorRect, children }: { anchorRect: DOMRect; childre
   );
 }
 
-export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], responses = [], newDates = [] }: Props) {
+export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = [], newDates = [] }: Props) {
+  // Names are already "Guest N" for guests on anonymous events (sanitized server-side);
+  // the host gets real names via the host-only API.
+  const { responses } = useEventResponses();
   const [hovered, setHovered] = useState<HoveredTooltip | null>(null);
 
   function handleEnter(e: MouseEvent<HTMLDivElement>, slot: string) {
@@ -96,7 +99,6 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
   const dates = [...event.dates].sort();
   const isDayMode = event.mode === 'days';
   const bestSet = new Set(bestSlots);
-  const isAnonymous = event.anonymous;
   const n = responses.length;
 
   // Build slot → respondent name list
@@ -181,7 +183,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
         {slotResponders.slice(0, TOOLTIP_MAX).map((name, ni) => (
           <div key={ni} className="flex items-center gap-1.5">
             <span className="rounded-full inline-block w-2 h-2 flex-shrink-0" style={{ backgroundColor: respondentColorMap.get(name) ?? '#888' }} />
-            {isAnonymous ? `Guest ${responses.findIndex(r => r.respondent_name === name) + 1}` : name}
+            {name}
           </div>
         ))}
         {slotResponders.length > TOOLTIP_MAX && (
@@ -212,7 +214,7 @@ export function HeatmapGrid({ event, densityMap, totalResponders, bestSlots = []
               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-white font-medium"
               style={{ backgroundColor: respondentColors[i] }}
             >
-              {isAnonymous ? `Guest ${i + 1}` : r.respondent_name}
+              {r.respondent_name}
             </span>
           ))}
           {n > LEGEND_MAX && (

@@ -75,12 +75,15 @@ export async function GET(
     return NextResponse.json({ error: 'Event has not been finalized' }, { status: 404 });
   }
 
-  // Fetch responses that have emails for ATTENDEE lines
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('respondent_name, email')
-    .eq('event_id', id)
-    .not('email', 'is', null);
+  // Attendees only on non-anonymous events, where respondents were told their
+  // name and email are visible to everyone with the link
+  const { data: responses } = event.anonymous
+    ? { data: [] }
+    : await supabase
+        .from('responses')
+        .select('respondent_name, email')
+        .eq('event_id', id)
+        .not('email', 'is', null);
 
   const range = getStartEnd(event as Event, event.finalized_slot);
   if (!range) {
@@ -107,7 +110,6 @@ export async function GET(
     `Coordinated with Seeya: ${eventUrl}`,
   ].filter(Boolean) as string[];
 
-  // Join with actual newline so escapeIcs can correctly escape it to \n (the ICS sequence)
   const attendeeLines = (responses ?? [])
     .filter((r: { respondent_name: string; email: string | null }) => r.email)
     .map((r: { respondent_name: string; email: string | null }) =>
@@ -128,6 +130,7 @@ export async function GET(
     dtStart,
     dtEnd,
     foldLine(`SUMMARY:${escapeIcs(event.name)}`),
+    // Join with actual newline so escapeIcs can correctly escape it to \n (the ICS sequence)
     descriptionParts.length ? foldLine(`DESCRIPTION:${escapeIcs(descriptionParts.join('\n'))}`) : '',
     event.location ? foldLine(`LOCATION:${escapeIcs(event.location)}`) : '',
     foldLine(`URL:${eventUrl}`),

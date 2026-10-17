@@ -48,9 +48,15 @@ alter table events enable row level security;
 alter table responses enable row level security;
 alter table ai_recommendations enable row level security;
 
-create policy "public read events" on events for select using (true);
-create policy "public read responses" on responses for select using (true);
-create policy "public read recommendations" on ai_recommendations for select using (true);
+-- No policies on purpose: with RLS on and no policies, the public anon key can't
+-- read or write anything. All access goes through server code using the service
+-- role key, which strips host_token and emails (src/lib/sanitize.ts).
+
+-- Lockdown migration (run once on existing databases, AFTER deploying the app
+-- version that reads through the service role):
+-- drop policy if exists "public read events" on events;
+-- drop policy if exists "public read responses" on responses;
+-- drop policy if exists "public read recommendations" on ai_recommendations;
 
 -- Migration (run these if upgrading from an earlier schema):
 -- alter table events add column if not exists location text;

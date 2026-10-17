@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Event, Response, SlotDensityMap } from '@/types';
+import { useEventResponses } from '@/components/HostResponsesProvider';
+import { Event, SlotDensityMap } from '@/types';
 import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
 import { CheckCircle, Mail } from 'lucide-react';
@@ -67,10 +68,11 @@ interface Props {
   allSlotKeys: string[];
   densityMap: SlotDensityMap;
   totalResponders: number;
-  responses?: Response[];
 }
 
-export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, totalResponders, responses = [] }: Props) {
+export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, totalResponders }: Props) {
+  // Real names/emails only arrive when this browser holds the host token
+  const { responses } = useEventResponses();
   const [finalizedSlot, setFinalizedSlot] = useState<string | null>(event.finalized_slot);
   const [isHost, setIsHost] = useState(false);
   const [unfinalizingPending, setUnfinalizingPending] = useState(false);

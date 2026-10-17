@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
+import { toPublicEvent, toPublicResponses } from '@/lib/sanitize';
+import { Event, Response } from '@/types';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -54,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ event: updated });
+    return NextResponse.json({ event: toPublicEvent(updated as Event) });
   } catch (err) {
     console.error('PATCH /api/events/[id]:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -110,8 +112,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     return NextResponse.json({
-      event: eventResult.data,
-      responses: responsesResult.data ?? [],
+      event: toPublicEvent(eventResult.data as Event),
+      responses: toPublicResponses((responsesResult.data ?? []) as Response[], eventResult.data.anonymous),
       recommendation: recommendationResult.data ?? null,
     });
   } catch (err) {
