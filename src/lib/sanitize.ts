@@ -11,13 +11,37 @@ export function toPublicEvent(event: Event): PublicEvent {
 }
 
 /**
- * Removes emails from every response. When the event is anonymous, also replaces
- * names with "Guest N" (by submission order) so real names never reach guests.
+ * Non-anonymous events: names and emails are visible to everyone with the link
+ * (respondents are told this on the form). Anonymous events: emails are removed
+ * and names become "Guest N" (by submission order).
  */
 export function toPublicResponses(responses: Response[], anonymous: boolean): Response[] {
+  if (!anonymous) return responses;
   return responses.map((r, i) => ({
     ...r,
     email: null,
-    respondent_name: anonymous ? `Guest ${i + 1}` : r.respondent_name,
+    respondent_name: `Guest ${i + 1}`,
+    comment: null,
   }));
+}
+
+export interface PublicComment {
+  name: string;
+  comment: string;
+}
+
+/**
+ * Comments always show the commenter's real name (they chose to post it).
+ * Shuffled and stripped of ids so, on anonymous events, a comment can't be
+ * matched to a "Guest N" by position.
+ */
+export function toPublicComments(responses: Response[]): PublicComment[] {
+  const comments = responses
+    .filter(r => r.comment)
+    .map(r => ({ name: r.respondent_name, comment: r.comment as string }));
+  for (let i = comments.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [comments[i], comments[j]] = [comments[j], comments[i]];
+  }
+  return comments;
 }

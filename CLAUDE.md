@@ -20,7 +20,7 @@ A scheduling coordination app. Users create events, share a link, participants d
 - All slot math lives in `src/lib/availability.ts` — `buildSlotKeys`, `buildDensityMap`, `findBestSlots`, `formatDateHeaderLines`. Keep this file pure (no DB, no API calls).
 - AI recommendations are cached in the `ai_recommendations` table and invalidated automatically when a new response is submitted.
 - No auth — events are public by UUID slug. Service role key must never be used client-side.
-- **Privacy boundary:** anything passed to a client component or returned from a public API route must go through `toPublicEvent` / `toPublicResponses` in `src/lib/sanitize.ts` (strips `host_token` and `email`; replaces names with "Guest N" on anonymous events). Never pass raw DB rows as props — props are serialized into the page.
+- **Privacy boundary:** anything passed to a client component or returned from a public API route must go through `src/lib/sanitize.ts`. `toPublicEvent` always strips `host_token`. `toPublicResponses`: non-anonymous events expose names + emails to everyone (the response form says so); anonymous events strip emails/comments and use "Guest N". `toPublicComments` returns comments with real names, shuffled and id-less so they can't be matched to a Guest N. Never pass raw DB rows as props — props are serialized into the page.
 - Host-only data (real names + emails) comes from `POST /api/events/[id]/host-view` with the host token, exposed to components via `useEventResponses()` from `HostResponsesProvider.tsx`.
 
 ## Environment variables required
@@ -94,7 +94,7 @@ Use `repeat(auto-fill, minmax(68px, 1fr))` for both `AvailabilityGrid` and `Heat
 
 ### Respondent color coding
 
-`HeatmapGrid` reads responses from `useEventResponses()` and builds a `slotToResponders` map internally. Colors are generated as `hsl((i * 360 / n) % 360, 65%, 55%)` for N respondents — evenly spaced hues. Anonymous mode: names are replaced with "Guest 1", "Guest 2", etc. **server-side** for guests (comments included); the host sees real names.
+`HeatmapGrid` reads responses from `useEventResponses()` and builds a `slotToResponders` map internally. Colors are generated as `hsl((i * 360 / n) % 360, 65%, 55%)` for N respondents — evenly spaced hues. Anonymous mode: names are replaced with "Guest 1", "Guest 2", etc. **server-side** for guests; the host sees real names. Comments always show real names (see `toPublicComments`).
 
 ### Decline flow
 
@@ -106,7 +106,7 @@ Respondents can submit with `declined: true` and an empty `availability: []` ("N
 
 ### Direct ICS endpoint
 
-`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invite bodies as the Apple Calendar link. Contains no ATTENDEE lines — the URL is public, so it must not expose respondent emails.
+`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invite bodies as the Apple Calendar link. Includes ATTENDEE lines only for non-anonymous events — the URL is public.
 
 ### Duration preset chips
 

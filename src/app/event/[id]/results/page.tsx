@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
-import { toPublicEvent, toPublicResponses } from '@/lib/sanitize';
+import { toPublicEvent, toPublicResponses, toPublicComments } from '@/lib/sanitize';
 import { HostResponsesProvider } from '@/components/HostResponsesProvider';
 import { ResponseComments } from '@/components/ResponseComments';
 import { HeatmapGrid } from '@/components/HeatmapGrid';
@@ -39,7 +39,9 @@ export default async function ResultsPage({ params, searchParams }: Props) {
   if (eventResult.error || !eventResult.data) notFound();
 
   const event = toPublicEvent(eventResult.data as Event);
-  const responses = toPublicResponses((responsesResult.data ?? []) as Response[], event.anonymous);
+  const rawResponses = (responsesResult.data ?? []) as Response[];
+  const responses = toPublicResponses(rawResponses, event.anonymous);
+  const comments = toPublicComments(rawResponses);
   const recommendation = (recommendationResult.data ?? null) as AiRecommendation | null;
 
   const allSlotKeys = buildSlotKeys(event);
@@ -102,7 +104,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         </div>
 
         {/* Comments from respondents */}
-        <ResponseComments />
+        <ResponseComments comments={comments} />
 
         {/* Finalized banner OR finalize button (client component handles both) */}
         <FinalizedBanner event={event} bestSlots={bestSlots} allSlotKeys={allSlotKeys} densityMap={densityMap} totalResponders={responses.length} />
