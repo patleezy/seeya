@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { Event } from '@/types';
 import { getAppUrl } from '@/lib/utils';
-import { parseISO, addMinutes, addDays, format } from 'date-fns';
+import { format } from 'date-fns';
+import { getSlotRange, appleMapsUrl } from '@/lib/calendar';
 
 // ---------------------------------------------------------------------------
 // Helpers (inlined from CalendarExport.tsx — do not import that client component)
@@ -24,28 +25,9 @@ function foldLine(line: string): string {
   return chunks.join('\r\n');
 }
 
-function appleMapsUrl(location: string): string {
-  if (location.startsWith('http')) return location;
-  return `https://maps.apple.com/?q=${encodeURIComponent(location)}`;
-}
-
 function toIcsDate(date: Date, allDay: boolean): string {
   if (allDay) return format(date, 'yyyyMMdd');
   return format(date, "yyyyMMdd'T'HHmmss");
-}
-
-function getStartEnd(event: Event, slot: string): { start: Date; end: Date; allDay: boolean } | null {
-  if (event.mode === 'days') {
-    const start = parseISO(slot);
-    // trip_duration covers how many days the trip spans; 1 (default) = single day
-    const end = addDays(start, event.trip_duration ?? 1);
-    return { start, end, allDay: true };
-  }
-
-  // times mode: slot is "YYYY-MM-DDTHH:MM"
-  const start = parseISO(slot + ':00');
-  const end = addMinutes(start, event.slot_duration ?? 30);
-  return { start, end, allDay: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -85,12 +67,7 @@ export async function GET(
         .eq('event_id', id)
         .not('email', 'is', null);
 
-  const range = getStartEnd(event as Event, event.finalized_slot);
-  if (!range) {
-    return NextResponse.json({ error: 'Could not determine event time range' }, { status: 500 });
-  }
-
-  const { start, end, allDay } = range;
+  const { start, end, allDay } = getSlotRange(event as Event, event.finalized_slot);
   const uid = `${event.id}@seeya`;
   const now = format(new Date(), "yyyyMMdd'T'HHmmss'Z'");
 

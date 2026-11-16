@@ -5,10 +5,11 @@ import { useEventResponses } from '@/components/HostResponsesProvider';
 import { Event, SlotDensityMap } from '@/types';
 import { CalendarExport } from '@/components/CalendarExport';
 import { FinalizeButton } from '@/components/FinalizeButton';
-import { CheckCircle, Mail } from 'lucide-react';
+import { CheckCircle, Mail, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAppUrl } from '@/lib/utils';
-import { format, parseISO, addMinutes, addDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { shortCalendarLinks } from '@/lib/calendar';
 
 function fmtTz(tz: string): string {
   try {
@@ -30,36 +31,57 @@ function formatFinalizedSlot(slot: string, event: Event): string {
   return `${date} at ${displayH}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
-function googleMapsUrl(location: string): string {
-  if (location.startsWith('http')) return location;
-  return `https://maps.google.com/?q=${encodeURIComponent(location)}`;
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function buildGcalUrl(slot: string, event: Event): string {
-  let startStr: string;
-  let endStr: string;
+interface InviteContent {
+  subject: string;
+  text: string;
+  html: string;
+}
 
-  if (event.mode === 'days') {
-    const start = parseISO(slot);
-    const end = addDays(start, event.trip_duration ?? 1);
-    startStr = format(start, 'yyyyMMdd');
-    endStr = format(end, 'yyyyMMdd');
-  } else {
-    const start = parseISO(slot + ':00');
-    const end = addMinutes(start, event.slot_duration ?? 30);
-    startStr = format(start, "yyyyMMdd'T'HHmmss");
-    endStr = format(end, "yyyyMMdd'T'HHmmss");
-  }
+// Builds the invite in two flavors: plain text (mailto: bodies can only be plain text)
+// and HTML with real hyperlinks (for the "Copy invite" clipboard button).
+// Contains no invitee emails — those only ever go in the BCC field.
+function buildInvite(slot: string, event: Event): InviteContent {
+  const formattedDate = formatFinalizedSlot(slot, event);
+  const tzSuffix = event.timezone ? ` (${fmtTz(event.timezone)})` : '';
+  const links = shortCalendarLinks(event.id);
+  const eventUrl = `${getAppUrl()}/event/${event.id}`;
 
-  const appUrl = getAppUrl();
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: event.name,
-    dates: `${startStr}/${endStr}`,
-    details: `Organized by ${event.creator_name}. Coordinated with Seeya: ${appUrl}/event/${event.id}${event.location ? `\n📍 ${googleMapsUrl(event.location)}` : ''}`,
-    ...(event.location ? { location: event.location } : {}),
-  });
-  return `https://calendar.google.com/calendar/event?${params.toString()}`;
+  const subject = `You're invited: ${event.name} — ${formattedDate}${tzSuffix}`;
+
+  const text = [
+    `Hi there,`,
+    ``,
+    `${event.name} is set for ${formattedDate}${tzSuffix}.`,
+    event.location ? `📍 ${event.location}` : null,
+    event.description || null,
+    ``,
+    `Add to your calendar:`,
+    `• Google: ${links.google}`,
+    `• Apple / Outlook: ${links.apple}`,
+    ``,
+    `— ${event.creator_name}`,
+  ].filter(s => s !== null).join('\r\n');
+
+  const e = escapeHtml;
+  const html = [
+    `<p>Hi there,</p>`,
+    `<p><strong>${e(event.name)}</strong> is set for <strong>${e(formattedDate + tzSuffix)}</strong>.</p>`,
+    event.location ? `<p>📍 ${e(event.location)}</p>` : '',
+    event.description ? `<p>${e(event.description).replace(/\n/g, '<br>')}</p>` : '',
+    `<p>Add to your calendar: <a href="${e(links.google)}">Google Calendar</a> · <a href="${e(links.apple)}">Apple / Outlook</a></p>`,
+    `<p>— ${e(event.creator_name)} · <a href="${e(eventUrl)}">View on Seeya</a></p>`,
+  ].join('');
+
+  return { subject, text, html };
 }
 
 interface Props {
@@ -111,35 +133,40 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
     }
   }
 
+  const invite = useMemo(
+    () => (finalizedSlot ? buildInvite(finalizedSlot, event) : null),
+    [finalizedSlot, event]
+  );
+
   const mailtoUrl = useMemo(() => {
-    if (!finalizedSlot) return null;
+    if (!invite) return null;
     const emailList = responses.filter(r => r.email && !r.declined).map(r => r.email as string);
     if (emailList.length === 0) return null;
+    return `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(invite.subject)}&body=${encodeURIComponent(invite.text)}`;
+  }, [invite, responses]);
 
-    const appUrl = getAppUrl();
-    const eventUrl = `${appUrl}/event/${event.id}`;
-    const formattedDate = formatFinalizedSlot(finalizedSlot, event);
-    const tzSuffix = event.timezone ? ` (${fmtTz(event.timezone)})` : '';
-    const subject = `You're invited: ${event.name} — ${formattedDate}${tzSuffix}`;
+  const [copied, setCopied] = useState(false);
 
-    const gcalUrl = buildGcalUrl(finalizedSlot, event);
-
-    const bodyLines = [
-      `Hi there,`,
-      ``,
-      `${event.name} is set for ${formattedDate}${tzSuffix}.`,
-      event.location ? `📍 ${event.location}` : null,
-      event.description ? event.description : null,
-      ``,
-      `Add to your calendar:`,
-      `• Google Calendar: ${gcalUrl}`,
-      `• Apple Calendar (.ics): ${appUrl}/api/events/${event.id}/ics`,
-      ``,
-      `— ${event.creator_name} · ${getAppUrl()}`,
-    ].filter(s => s !== null).join('\r\n');
-
-    return `mailto:?bcc=${encodeURIComponent(emailList.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines)}`;
-  }, [finalizedSlot, responses, event]);
+  async function handleCopyInvite() {
+    if (!invite) return;
+    try {
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+        // Rich-text email editors (Gmail, Outlook, Apple Mail) paste the HTML with live links
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([invite.html], { type: 'text/html' }),
+            'text/plain': new Blob([invite.text], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(invite.text);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked (permissions / insecure context) — nothing else to do
+    }
+  }
 
   const emailCount = useMemo(
     () => responses.filter(r => r.email && !r.declined).length,
@@ -180,17 +207,31 @@ export function FinalizedBanner({ event, bestSlots, allSlotKeys, densityMap, tot
           )}
         </div>
         <CalendarExport event={{ ...event, finalized_slot: finalizedSlot }} bestSlots={slotsForExport} responses={responses} />
-        {isHost && mailtoUrl && (
-          <a href={mailtoUrl}>
+        {isHost && (
+          <div className="flex flex-wrap gap-2">
+            {mailtoUrl && (
+              <a href={mailtoUrl}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 rounded-xl border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Email invites ({emailCount < nonDeclinedCount ? `${emailCount} of ${nonDeclinedCount}` : emailCount})
+                </Button>
+              </a>
+            )}
             <Button
               variant="outline"
               size="sm"
+              onClick={handleCopyInvite}
+              title="Copy a formatted invite with clickable calendar links — paste it into any email"
               className="gap-1.5 rounded-xl border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
             >
-              <Mail className="h-3.5 w-3.5" />
-              Email invites ({emailCount < nonDeclinedCount ? `${emailCount} of ${nonDeclinedCount}` : emailCount})
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copied!' : 'Copy invite'}
             </Button>
-          </a>
+          </div>
         )}
       </div>
     );
