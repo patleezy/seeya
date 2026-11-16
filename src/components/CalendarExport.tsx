@@ -4,7 +4,8 @@ import { Calendar, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Event, Response } from '@/types';
 import { getAppUrl } from '@/lib/utils';
-import { parseISO, addMinutes, addDays, format } from 'date-fns';
+import { format } from 'date-fns';
+import { getSlotRange, appleMapsUrl, buildGoogleCalendarUrl, EventRange } from '@/lib/calendar';
 
 interface Props {
   event: Event;
@@ -12,43 +13,15 @@ interface Props {
   responses?: Response[];
 }
 
-function getStartEnd(event: Event, bestSlots: string[]): { start: Date; end: Date; allDay: boolean } | null {
+function getStartEnd(event: Event, bestSlots: string[]): EventRange | null {
   const slots = event.finalized_slot ? [event.finalized_slot] : bestSlots;
   if (!slots.length) return null;
-
-  if (event.mode === 'days') {
-    const start = parseISO(slots[0]);
-    const lastSlot = parseISO(slots[slots.length - 1]);
-    // trip_duration covers how many days the trip spans; 1 (default) = single day
-    const end = addDays(lastSlot, event.trip_duration ?? 1);
-    return { start, end, allDay: true };
-  }
-
-  // times mode: slot is "YYYY-MM-DDTHH:MM" — parseISO requires a full ISO string
-  const start = parseISO(slots[0].replace('T', 'T') + ':00');
-  const lastSlot = parseISO(slots[slots.length - 1].replace('T', 'T') + ':00');
-  const end = addMinutes(lastSlot, event.slot_duration ?? 30);
-  return { start, end, allDay: false };
+  return getSlotRange(event, slots[0], slots[slots.length - 1]);
 }
 
 function toIcsDate(date: Date, allDay: boolean): string {
   if (allDay) return format(date, 'yyyyMMdd');
   return format(date, "yyyyMMdd'T'HHmmss");
-}
-
-function toGoogleDate(date: Date, allDay: boolean): string {
-  if (allDay) return format(date, 'yyyyMMdd');
-  return format(date, "yyyyMMdd'T'HHmmss");
-}
-
-function appleMapsUrl(location: string): string {
-  if (location.startsWith('http')) return location;
-  return `https://maps.apple.com/?q=${encodeURIComponent(location)}`;
-}
-
-function googleMapsUrl(location: string): string {
-  if (location.startsWith('http')) return location;
-  return `https://maps.google.com/?q=${encodeURIComponent(location)}`;
 }
 
 function escapeIcs(text: string): string {
@@ -133,31 +106,8 @@ function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
 function googleCalendarUrl(event: Event, bestSlots: string[], responses: Response[]): string {
   const range = getStartEnd(event, bestSlots);
   if (!range) return '#';
-
-  const { start, end, allDay } = range;
-  const dates = `${toGoogleDate(start, allDay)}/${toGoogleDate(end, allDay)}`;
-  const appUrl = getAppUrl();
-  const eventUrl = `${appUrl}/event/${event.id}`;
-
-  const detailParts = [
-    event.description,
-    event.location ? `📍 ${googleMapsUrl(event.location)}` : null,
-    `Organized by ${event.creator_name}.`,
-    `Coordinated with Seeya: ${eventUrl}`,
-  ].filter(Boolean);
-
   const guestEmails = responses.filter(r => r.email).map(r => r.email as string);
-
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: event.name,
-    dates,
-    details: detailParts.join('\n'),
-    ...(event.location ? { location: event.location } : {}),
-    ...(guestEmails.length > 0 ? { add: guestEmails.join(',') } : {}),
-  });
-
-  return `https://calendar.google.com/calendar/event?${params.toString()}`;
+  return buildGoogleCalendarUrl(event, range, guestEmails);
 }
 
 export function CalendarExport({ event, bestSlots, responses = [] }: Props) {
