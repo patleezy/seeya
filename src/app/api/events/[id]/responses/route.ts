@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { CreateResponseRequest } from '@/types';
-import { isValidSlotKey, isValidUUID, checkRateLimit } from '@/lib/validation';
+import { isValidSlotKey, isValidUUID } from '@/lib/validation';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,8 +12,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    if (!checkRateLimit(ip, 'submit_response', 30, 60 * 60 * 1000)) {
+    const ip = getClientIp(req.headers);
+    if (!(await checkRateLimit(ip, 'submit_response', 30, 60 * 60 * 1000))) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
