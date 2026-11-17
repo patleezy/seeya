@@ -30,6 +30,7 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY   # server-only
 GEMINI_API_KEY              # server-only
+RATE_LIMIT_SECRET           # optional, server-only (HMAC key for rate-limit IP hashing)
 NEXT_PUBLIC_APP_URL
 ```
 
@@ -44,7 +45,7 @@ npm run dev
 
 ## Database
 
-Schema is at `supabase/schema.sql`. Run it once in the Supabase SQL editor. Three tables: `events`, `responses`, `ai_recommendations`.
+Schema is at `supabase/schema.sql`. Run it once in the Supabase SQL editor. Four tables: `events`, `responses`, `ai_recommendations`, `rate_limits`.
 
 Key `events` columns beyond the basics: `host_token uuid`, `finalized_slot text`, `finalized_at timestamptz`, `location text`, `timezone text`, `anonymous boolean`, `max_responses int`, `response_deadline timestamptz`, `trip_duration int`.
 
@@ -85,7 +86,7 @@ Fix in `AvailabilityGrid.tsx`: use `useEffect` + native `el.addEventListener('to
 
 ### iCal RFC 5545 formatting
 
-- Lines longer than 75 octets must fold: CRLF followed by a single space. See `foldLine()` in `CalendarExport.tsx`.
+- Lines longer than 75 octets must fold: CRLF followed by a single space. See `foldLine()` in `src/lib/calendar.ts`.
 - Description newlines: join parts with `'\n'` (actual newline char, 0x0A), then let `escapeIcs()` convert to `\n` ICS escape. Do **not** pre-join with `'\\n'` — `escapeIcs` will double-escape the backslash.
 
 ### CSS grid for equal cell sizing
@@ -106,7 +107,17 @@ Respondents can submit with `declined: true` and an empty `availability: []` ("N
 
 ### Direct ICS endpoint
 
-`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invite bodies as the Apple Calendar link. Includes ATTENDEE lines only for non-anonymous events — the URL is public.
+`GET /api/events/[id]/ics` — serves a `.ics` file for the finalized event. Returns 404 if the event has no `finalized_slot`. Sets `Content-Type: text/calendar;charset=utf-8` and `Content-Disposition: attachment`. Used in email invites via the `/e/[id]/apple` short link. Contains **no** ATTENDEE lines — the URL is public and forwardable. The in-app download in `CalendarExport.tsx` still lists attendees from the (already sanitized) responses.
+
+All calendar logic (slot ranges, Google Calendar URLs, `.ics` building, RFC 5545 escaping/folding) lives in `src/lib/calendar.ts`. Keep it pure — it's imported by both client components and route handlers.
+
+### Short calendar links
+
+`GET /e/[id]/google` and `GET /e/[id]/apple` redirect to the Google Calendar add-event URL and the `.ics` route. Email invites use these instead of the 300+ character Google URL. Redirect targets are built only from the stored event (no open redirect) and never include guest emails. The host also gets a **Copy invite** button that puts an HTML invite with real hyperlinks on the clipboard (mailto: bodies are plain text only).
+
+### Rate limiting
+
+`src/lib/rateLimit.ts` → `await checkRateLimit(ip, action, limit, windowMs)`. Counts are stored in the `rate_limits` table via the `check_rate_limit` Postgres function so limits hold across serverless instances. Keys are an HMAC of `action:ip` (secret: `RATE_LIMIT_SECRET`, else the service role key) — raw IPs are never stored. Falls back to in-memory if the RPC is unavailable.
 
 ### Duration preset chips
 

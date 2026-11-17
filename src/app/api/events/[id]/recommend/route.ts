@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { buildSlotKeys, buildDensityMap, findBestSlots } from '@/lib/availability';
 import { getAiRecommendation } from '@/lib/gemini';
 import { Event, Response } from '@/types';
-import { isValidUUID, checkRateLimit } from '@/lib/validation';
+import { isValidUUID } from '@/lib/validation';
 
 // In-memory rate limit: don't call Gemini twice within 10s for the same event
 const recentCalls = new Map<string, number>();
@@ -16,8 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    if (!checkRateLimit(ip, 'recommend', 5, 60 * 60 * 1000)) {
+    const ip = getClientIp(req.headers);
+    if (!(await checkRateLimit(ip, 'recommend', 5, 60 * 60 * 1000))) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
     const supabase = createSupabaseAdminClient();

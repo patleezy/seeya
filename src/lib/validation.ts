@@ -18,30 +18,3 @@ export function isValidDate(s: string): boolean {
 export function isValidTime(s: string): boolean {
   return TIME_RE.test(s);
 }
-
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-export function checkRateLimit(
-  ip: string,
-  action: string,
-  limit: number,
-  windowMs: number
-): boolean {
-  const key = `${ip}:${action}`;
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-
-  if (!entry || entry.resetAt <= now) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-
-  if (entry.count >= limit) return false;
-  entry.count++;
-  return true;
-}

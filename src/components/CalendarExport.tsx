@@ -3,9 +3,7 @@
 import { Calendar, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Event, Response } from '@/types';
-import { getAppUrl } from '@/lib/utils';
-import { format } from 'date-fns';
-import { getSlotRange, appleMapsUrl, buildGoogleCalendarUrl, EventRange } from '@/lib/calendar';
+import { getSlotRange, buildGoogleCalendarUrl, buildIcs, icsFilename, EventRange } from '@/lib/calendar';
 
 interface Props {
   event: Event;
@@ -19,86 +17,21 @@ function getStartEnd(event: Event, bestSlots: string[]): EventRange | null {
   return getSlotRange(event, slots[0], slots[slots.length - 1]);
 }
 
-function toIcsDate(date: Date, allDay: boolean): string {
-  if (allDay) return format(date, 'yyyyMMdd');
-  return format(date, "yyyyMMdd'T'HHmmss");
-}
-
-function escapeIcs(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
-}
-
-// RFC 5545 §3.1 — fold lines exceeding 75 octets
-function foldLine(line: string): string {
-  if (line.length <= 75) return line;
-  const chunks: string[] = [line.slice(0, 75)];
-  let i = 75;
-  while (i < line.length) {
-    chunks.push(' ' + line.slice(i, i + 74));
-    i += 74;
-  }
-  return chunks.join('\r\n');
-}
-
 function downloadIcs(event: Event, bestSlots: string[], responses: Response[]) {
   const range = getStartEnd(event, bestSlots);
   if (!range) return;
 
-  const { start, end, allDay } = range;
-  const uid = `${event.id}-${Date.now()}@seeya`;
-  const now = format(new Date(), "yyyyMMdd'T'HHmmss'Z'");
-
-  const dtStart = allDay
-    ? `DTSTART;VALUE=DATE:${toIcsDate(start, true)}`
-    : `DTSTART:${toIcsDate(start, false)}`;
-  const dtEnd = allDay
-    ? `DTEND;VALUE=DATE:${toIcsDate(end, true)}`
-    : `DTEND:${toIcsDate(end, false)}`;
-
-  const appUrl = getAppUrl();
-  const eventUrl = `${appUrl}/event/${event.id}`;
-
-  const descriptionParts = [
-    event.description,
-    event.location ? `📍 ${event.location}\n${appleMapsUrl(event.location)}` : null,
-    `Organized by ${event.creator_name}`,
-    `Coordinated with Seeya: ${eventUrl}`,
-  ].filter(Boolean) as string[];
-
-  // Join with actual newline so escapeIcs can correctly escape it to \n (the ICS sequence)
-  // (joining with '\\n' would cause double-escaping in escapeIcs)
-
-  const attendeeLines = responses
+  // Responses here are already sanitized for this viewer (see src/lib/sanitize.ts)
+  const attendees = responses
     .filter(r => r.email)
-    .map(r =>
-      foldLine(`ATTENDEE;CN=${escapeIcs(r.respondent_name)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${r.email}`)
-    );
+    .map(r => ({ name: r.respondent_name, email: r.email as string }));
+  const ics = buildIcs(event, range, { uid: `${event.id}-${Date.now()}@seeya`, attendees });
 
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//seeya//seeya//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTAMP:${now}`,
-    dtStart,
-    dtEnd,
-    foldLine(`SUMMARY:${escapeIcs(event.name)}`),
-    descriptionParts.length ? foldLine(`DESCRIPTION:${escapeIcs(descriptionParts.join('\n'))}`) : '',
-    event.location ? foldLine(`LOCATION:${escapeIcs(event.location)}`) : '',
-    foldLine(`URL:${eventUrl}`),
-    ...attendeeLines,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].filter(Boolean).join('\r\n');
-
-  const blob = new Blob([lines], { type: 'text/calendar;charset=utf-8' });
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${event.name.toLowerCase().replace(/\s+/g, '-')}.ics`;
+  a.download = icsFilename(event);
   a.click();
   URL.revokeObjectURL(url);
 }

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 import { createSupabaseAdminClient } from '@/lib/supabase/server';
 import { CreateEventRequest } from '@/types';
-import { checkRateLimit, isValidDate, isValidTime } from '@/lib/validation';
+import { isValidDate, isValidTime } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    if (!checkRateLimit(ip, 'create_event', 10, 60 * 60 * 1000)) {
+    const ip = getClientIp(req.headers);
+    if (!(await checkRateLimit(ip, 'create_event', 10, 60 * 60 * 1000))) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
